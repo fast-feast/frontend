@@ -1,6 +1,6 @@
 <div align="center">
   <br />
-  <h1>⚡ Fast Feast</h1>
+  <h1>⚡ Fast Feast </h1>
   <p><strong>Smart Canteen Food Ordering — Skip the Queue, Not the Flavor</strong></p>
   <br />
   <p>
