@@ -4,6 +4,8 @@ import BottomNav from '@/components/BottomNav';
 import Toast from '@/components/Toast';
 import StickyCartBar from '@/components/StickyCartBar';
 import GeminiAssistant from '@/components/GeminiAssistant';
+import PwaInstallPrompt from '@/components/PwaInstallPrompt';
+import UpdatePrompt from '@/components/UpdatePrompt';
 import SplashScreen from '@/screens/SplashScreen';
 import OnboardingScreen from '@/screens/OnboardingScreen';
 import LoginScreen from '@/screens/LoginScreen';
@@ -111,6 +113,12 @@ function AppShell() {
 
         {/* Toast Notifications */}
         <Toast />
+
+        {/* PWA Install Prompt */}
+        <PwaInstallPrompt />
+
+        {/* PWA Update Prompt */}
+        <UpdatePrompt />
 
         {/* Gemini Food Assistant - only on home screen, fixed below nav */}
         {state.screen === 'home' && <GeminiAssistant />}
