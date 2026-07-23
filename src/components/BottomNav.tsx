@@ -89,9 +89,6 @@ export default function BottomNav() {
             );
           })}
         </div>
-        <p className="h-5 flex items-center justify-center text-[9px] font-medium text-[#5A3D48] tracking-wider">
-          © 2026 AKMH TEAM
-        </p>
       </div>
     </motion.nav>
   );

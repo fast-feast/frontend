@@ -185,9 +185,7 @@ export default function LoginScreen() {
           </motion.button>
         </motion.form>
       </div>
-      <p className="relative mt-6 text-center text-[10px] font-medium text-[#8F817A]">
-        © 2026 AKMH TEAM
-      </p>
+
     </div>
   );
 }
