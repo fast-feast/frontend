@@ -1,11 +1,37 @@
-import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/hooks/useAppContext';
 import { UtensilsCrossed } from 'lucide-react';
 import { getMe } from '@/services/auth';
 
+const splashStyles = `
+@keyframes splash-fade-in {
+  0% { opacity: 0; transform: scale(0.85); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes splash-scale-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+@keyframes splash-orbit {
+  0% { transform: rotate(0deg) translateX(70px) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(70px) rotate(-360deg); }
+}
+@keyframes splash-slide-up {
+  0% { transform: translateY(12px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+@keyframes splash-text-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+`;
+
+const EMOJIS = ['🍔', '🍕', '☕', '🍩'];
+
 export default function SplashScreen() {
-  const { dispatch, state, loginWithToken } = useApp();
+  const { state, loginWithToken } = useApp();
+  const navigate = useNavigate();
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
@@ -32,89 +58,77 @@ export default function SplashScreen() {
     if (!authChecked) return;
     const timer = setTimeout(() => {
       if (state.isOnboarded) {
-        dispatch({ type: 'NAVIGATE', screen: state.isLoggedIn ? 'home' : 'login' });
+        if (state.isLoggedIn) {
+          const role = state.user.role;
+          if (role === 'admin') navigate('/admin/dashboard', { replace: true });
+          else if (role === 'canteen_owner') navigate('/canteen/dashboard', { replace: true });
+          else navigate('/home', { replace: true });
+        } else {
+          navigate('/login', { replace: true });
+        }
       } else {
-        dispatch({ type: 'NAVIGATE', screen: 'onboarding' });
+        navigate('/onboarding', { replace: true });
       }
     }, 2000);
     return () => clearTimeout(timer);
-  }, [authChecked, state.isOnboarded, state.isLoggedIn]);
+  }, [authChecked, state.isOnboarded, state.isLoggedIn, state.user.role, navigate]);
 
   return (
     <div className="screen-surface h-full flex flex-col items-center justify-center relative overflow-hidden">
-      {/* Red-to-blue ambient glow */}
+      <style>{splashStyles}</style>
+
+      {/* Ambient glow */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#E83F4D]/15 via-[#B8303E]/6 to-transparent pointer-events-none" />
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-[#E83F4D]/10 blur-[100px] pointer-events-none" />
       <div className="absolute top-2/3 left-1/4 w-[250px] h-[250px] rounded-full bg-[#1A1A2E]/8 blur-[80px] pointer-events-none" />
 
       {/* Orbiting food animation */}
-      <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      <div
         className="relative w-[200px] h-[200px] flex items-center justify-center"
+        style={{ animation: 'splash-fade-in 0.4s 0s cubic-bezier(0.16, 1, 0.3, 1) both' }}
       >
         {/* Center circle */}
-        <motion.div
-          animate={{ scale: [1, 1.05, 1] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-          className="w-20 h-20 rounded-full food-gradient flex items-center justify-center shadow-glow-orange"
+        <div
+          className="w-20 h-20 rounded-full food-gradient flex items-center justify-center shadow-glow-orange z-10"
+          style={{ animation: 'splash-scale-pulse 2s 0.4s ease-in-out infinite' }}
         >
           <UtensilsCrossed size={32} className="text-white" />
-        </motion.div>
+        </div>
+
         {/* Orbiting items */}
-        {['🍔', '🍕', '☕', '🍩'].map((emoji, i) => (
-          <motion.div
+        {EMOJIS.map((emoji, i) => (
+          <div
             key={i}
-            className="absolute text-2xl"
-            animate={{ rotate: 360 }}
-            transition={{
-              duration: 3,
-              repeat: Infinity,
-              ease: 'linear',
-              delay: i * 0.75,
-            }}
+            className="absolute left-1/2 top-1/2 text-2xl"
             style={{
-              width: '100%',
-              height: '100%',
-              position: 'absolute',
+              animation: 'splash-orbit 3s linear infinite',
+              animationDelay: `${i * 0.75}s`,
+              marginLeft: '-0.5em',
+              marginTop: '-0.5em',
             }}
           >
-            <span
-              className="absolute"
-              style={{
-                top: '50%',
-                left: '50%',
-                transform: `rotate(${i * 90}deg) translateX(70px) translate(-50%, -50%)`,
-              }}
-            >
-              {emoji}
-            </span>
-          </motion.div>
+            {emoji}
+          </div>
         ))}
-      </motion.div>
+      </div>
 
       {/* Logo */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6, duration: 0.3 }}
+      <div
         className="mt-8 text-center"
+        style={{ animation: 'splash-slide-up 0.4s 0.6s cubic-bezier(0.16, 1, 0.3, 1) both' }}
       >
         <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight text-white">
           Fast <span className="text-[#FF6B35]">Feast</span>
         </h1>
-      </motion.div>
+      </div>
 
       {/* Loading text */}
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: [0.5, 1, 0.5] }}
-        transition={{ delay: 0.9, duration: 2, repeat: Infinity }}
+      <p
         className="mt-4 text-xs text-[#6B6B6B] font-medium tracking-wide"
+        style={{ animation: 'splash-text-pulse 2s 0.9s ease-in-out infinite' }}
       >
         Serving up deliciousness...
-      </motion.p>
+      </p>
     </div>
   );
 }
