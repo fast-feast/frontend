@@ -68,6 +68,7 @@ export interface UserProfile {
   streakDays: number;
   totalOrders: number;
   totalSaved: number;
+  role?: 'user' | 'canteen_owner' | 'admin';
 }
 
 export interface DashboardOrder {

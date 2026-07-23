@@ -3,8 +3,7 @@ import type { UserProfile } from '@/types';
 
 export interface UserDTO extends UserProfile {
   _id: string;
-  isAdmin: boolean;
-  isCanteenOwner: boolean;
+  role: 'user' | 'canteen_owner' | 'admin';
 }
 
 export interface UserStats {

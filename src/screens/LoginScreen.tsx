@@ -61,6 +61,7 @@ export default function LoginScreen() {
           name: user.name,
           phone: user.phone,
           email: user.email,
+          role: user.role,
         });
         showToast('Welcome to Fast Feast!');
       }

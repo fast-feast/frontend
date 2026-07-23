@@ -31,7 +31,7 @@ type Action =
   | { type: 'SET_ACTIVE_ORDER'; orderId: string; token: string }
   | { type: 'COMPLETE_ONBOARDING' }
   | { type: 'SET_TOKEN'; token: string | null }
-  | { type: 'LOGIN'; name: string; phone: string; email: string }
+  | { type: 'LOGIN'; name: string; phone: string; email: string; role?: 'user' | 'canteen_owner' | 'admin' }
   | { type: 'LOGOUT' }
   | { type: 'SHOW_TOAST'; message: string; toastType: 'success' | 'warning' | 'error' }
   | { type: 'HIDE_TOAST' }
@@ -137,6 +137,7 @@ function appReducer(state: AppState, action: Action): AppState {
           name: action.name,
           phone: action.phone,
           email: action.email,
+          role: action.role || 'user',
         },
         navDirection: 'push',
       };
@@ -193,7 +194,7 @@ interface AppContextType {
   cartTotal: number;
   cartCount: number;
   /** Perform a full login: store token, fetch profile, navigate home */
-  loginWithToken: (token: string, user: { name: string; phone: string; email: string }) => void;
+  loginWithToken: (token: string, user: { name: string; phone: string; email: string; role?: 'user' | 'canteen_owner' | 'admin' }) => void;
   /** Clear all auth state and navigate to login */
   logout: () => void;
 }
@@ -271,11 +272,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const loginWithToken = useCallback((
     token: string,
-    user: { name: string; phone: string; email: string }
+    user: { name: string; phone: string; email: string; role?: 'user' | 'canteen_owner' | 'admin' }
   ) => {
     storeToken(token);
     dispatch({ type: 'SET_TOKEN', token });
-    dispatch({ type: 'LOGIN', name: user.name, phone: user.phone, email: user.email });
+    dispatch({ type: 'LOGIN', name: user.name, phone: user.phone, email: user.email, role: user.role });
   }, []);
 
   const logout = useCallback(() => {

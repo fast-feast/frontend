@@ -24,7 +24,7 @@ export interface VerifyOtpRequest {
 }
 
 export interface AuthResponse {
-  user: UserProfile & { _id: string; isAdmin: boolean; isCanteenOwner: boolean };
+  user: UserProfile & { _id: string; role: 'user' | 'canteen_owner' | 'admin' };
   token: string;
 }
 

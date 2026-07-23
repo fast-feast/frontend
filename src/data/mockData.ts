@@ -109,6 +109,7 @@ export const userProfile: UserProfile = {
   streakDays: 7,
   totalOrders: 23,
   totalSaved: 340,
+  role: 'user',
 };
 
 export const pastOrders: Order[] = [
