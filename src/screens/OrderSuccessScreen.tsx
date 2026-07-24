@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Clock, Users, CheckCircle2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/hooks/useAppContext';
 import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
 
 export default function OrderSuccessScreen() {
   const { state, navigate, dispatch } = useApp();
+  const routerNavigate = useNavigate();
   const [spinComplete, setSpinComplete] = useState(false);
   const token = state.tokenNumber || 'A-042';
 
@@ -29,6 +31,7 @@ export default function OrderSuccessScreen() {
 
   const handleOrderMore = () => {
     dispatch({ type: 'SET_TAB', tab: 'home' });
+    routerNavigate('/home');
   };
 
   return (

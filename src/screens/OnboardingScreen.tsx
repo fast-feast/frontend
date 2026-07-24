@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/hooks/useAppContext';
 import { Clock, Users, Sparkles } from 'lucide-react';
 
@@ -30,6 +31,7 @@ const slides = [
 export default function OnboardingScreen() {
   const [current, setCurrent] = useState(0);
   const { dispatch } = useApp();
+  const navigate = useNavigate();
   const [direction, setDirection] = useState(0);
 
   const goTo = (index: number) => {
@@ -42,11 +44,13 @@ export default function OnboardingScreen() {
       goTo(current + 1);
     } else {
       dispatch({ type: 'COMPLETE_ONBOARDING' });
+      navigate('/role-selection');
     }
   };
 
   const skip = () => {
     dispatch({ type: 'COMPLETE_ONBOARDING' });
+    navigate('/role-selection');
   };
 
   const slide = slides[current];

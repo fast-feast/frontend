@@ -1,14 +1,17 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ShoppingBag } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
 
+const HIDDEN_PATHS = ['/payment', '/order-success', '/order-tracking', '/canteen/dashboard', '/admin/dashboard'];
+
 export default function StickyCartBar() {
-  const { state, cartTotal, cartCount, navigate } = useApp();
+  const { state, cartTotal, cartCount } = useApp();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   if (state.cart.length === 0) return null;
-
-  const hiddenScreens = ['payment', 'orderSuccess', 'orderTracking', 'canteenDashboard', 'admin'];
-  if (hiddenScreens.includes(state.screen)) return null;
+  if (HIDDEN_PATHS.includes(location.pathname)) return null;
 
   return (
     <AnimatePresence>
@@ -46,7 +49,7 @@ export default function StickyCartBar() {
           </div>
           <motion.button
             whileTap={{ scale: 0.97 }}
-            onClick={() => navigate('cart', 'modal')}
+            onClick={() => navigate('/cart')}
             className="food-gradient text-white font-semibold text-sm px-6 py-2.5 rounded-full flex items-center gap-2"
             style={{ boxShadow: '0 4px 16px rgba(217, 74, 90, 0.35)' }}
           >

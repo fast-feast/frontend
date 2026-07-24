@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
-import type { ScreenName, TabName, CartItem, Order, MenuItem } from '@/types';
+import { useNavigate } from 'react-router-dom';
+import type { TabName, CartItem, Order, MenuItem, ScreenName } from '@/types';
 import { userProfile } from '@/data/mockData';
 import { getStoredToken, removeToken, storeToken } from '@/services/api';
+import { screenToPath } from '@/routes/paths';
 
 interface AppState {
-  screen: ScreenName;
-  prevScreen: ScreenName | null;
   activeTab: TabName;
   selectedCanteenId: string | null;
   cart: CartItem[];
@@ -17,11 +17,9 @@ interface AppState {
   token: string | null;
   toast: { message: string; type: 'success' | 'warning' | 'error' } | null;
   user: typeof userProfile;
-  navDirection: 'push' | 'pop' | 'modal';
 }
 
 type Action =
-  | { type: 'NAVIGATE'; screen: ScreenName; direction?: 'push' | 'pop' | 'modal' }
   | { type: 'SET_TAB'; tab: TabName }
   | { type: 'SELECT_CANTEEN'; id: string }
   | { type: 'ADD_TO_CART'; item: CartItem }
@@ -45,8 +43,6 @@ type Action =
 const storedToken = getStoredToken();
 
 const initialState: AppState = {
-  screen: 'splash',
-  prevScreen: null,
   activeTab: 'home',
   selectedCanteenId: null,
   cart: [],
@@ -58,7 +54,6 @@ const initialState: AppState = {
   token: storedToken,
   toast: null,
   user: { ...userProfile },
-  navDirection: 'push',
 };
 
 const tabScreenMap: Record<TabName, ScreenName> = {
@@ -71,23 +66,10 @@ const tabScreenMap: Record<TabName, ScreenName> = {
 
 function appReducer(state: AppState, action: Action): AppState {
   switch (action.type) {
-    case 'NAVIGATE': {
-      const dir = action.direction || 'push';
-      return {
-        ...state,
-        prevScreen: state.screen,
-        screen: action.screen,
-        navDirection: dir,
-      };
-    }
     case 'SET_TAB': {
-      const screen = tabScreenMap[action.tab];
       return {
         ...state,
         activeTab: action.tab,
-        prevScreen: state.screen,
-        screen,
-        navDirection: 'pop',
       };
     }
     case 'SELECT_CANTEEN':
@@ -122,7 +104,7 @@ function appReducer(state: AppState, action: Action): AppState {
     case 'SET_ACTIVE_ORDER':
       return { ...state, activeOrderId: action.orderId, tokenNumber: action.token };
     case 'COMPLETE_ONBOARDING':
-      return { ...state, isOnboarded: true, screen: 'login' };
+      return { ...state, isOnboarded: true };
     case 'SET_TOKEN':
       return { ...state, token: action.token, isLoggedIn: !!action.token };
     case 'LOGIN':
@@ -130,8 +112,6 @@ function appReducer(state: AppState, action: Action): AppState {
         ...state,
         isLoggedIn: true,
         activeTab: 'home',
-        prevScreen: state.screen,
-        screen: 'home',
         user: {
           ...state.user,
           name: action.name,
@@ -139,7 +119,6 @@ function appReducer(state: AppState, action: Action): AppState {
           email: action.email,
           role: action.role || 'user',
         },
-        navDirection: 'push',
       };
     case 'LOGOUT':
       return {
@@ -151,10 +130,7 @@ function appReducer(state: AppState, action: Action): AppState {
         cart: [],
         orders: [],
         activeTab: 'home',
-        prevScreen: state.screen,
-        screen: 'login',
         user: { ...userProfile },
-        navDirection: 'pop',
       };
     case 'SHOW_TOAST':
       return { ...state, toast: { message: action.message, type: action.toastType } };
@@ -193,9 +169,9 @@ interface AppContextType {
   showToast: (message: string, type?: 'success' | 'warning' | 'error') => void;
   cartTotal: number;
   cartCount: number;
-  /** Perform a full login: store token, fetch profile, navigate home */
+  /** Perform a full login: store token, navigate to role-specific dashboard */
   loginWithToken: (token: string, user: { name: string; phone: string; email: string; role?: 'user' | 'canteen_owner' | 'admin' }) => void;
-  /** Clear all auth state and navigate to login */
+  /** Clear all auth state and navigate to role selection */
   logout: () => void;
 }
 
@@ -203,31 +179,24 @@ const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const routerNavigate = useNavigate();
 
-  const navigate = useCallback((screen: ScreenName, direction?: 'push' | 'pop' | 'modal') => {
-    dispatch({ type: 'NAVIGATE', screen, direction: direction || 'push' });
-  }, []);
+  // ─── Navigation bridge ──────────────────────────────
+  // Maps legacy ScreenName values to URL paths so existing
+  // screens that call navigate('home') still work.
+
+  const navigate = useCallback(
+    (screen: ScreenName, _direction?: 'push' | 'pop' | 'modal') => {
+      const path = screenToPath[screen];
+      if (!path) return;
+      routerNavigate(path);
+    },
+    [routerNavigate],
+  );
 
   const goBack = useCallback(() => {
-    const backMap: Record<ScreenName, ScreenName> = {
-      splash: 'splash',
-      onboarding: 'splash',
-      login: 'login',
-      home: 'home',
-      canteenDetail: 'home',
-      cart: 'canteenDetail',
-      payment: 'cart',
-      orderSuccess: 'payment',
-      orderTracking: 'orderSuccess',
-      orders: 'orders',
-      groupOrder: 'groupOrder',
-      offers: 'offers',
-      profile: 'profile',
-      canteenDashboard: 'canteenDashboard',
-      admin: 'admin',
-    };
-    dispatch({ type: 'NAVIGATE', screen: backMap[state.screen] || 'home', direction: 'pop' });
-  }, [state.screen]);
+    routerNavigate(-1);
+  }, [routerNavigate]);
 
   const addToCart = useCallback((itemId: string, preloadedItem?: CartItem) => {
     const handleAdd = (item: MenuItem) => {
@@ -277,22 +246,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     storeToken(token);
     dispatch({ type: 'SET_TOKEN', token });
     dispatch({ type: 'LOGIN', name: user.name, phone: user.phone, email: user.email, role: user.role });
-  }, []);
+    // Navigate to role-appropriate dashboard
+    const role = user.role;
+    if (role === 'admin') routerNavigate('/admin/dashboard', { replace: true });
+    else if (role === 'canteen_owner') routerNavigate('/canteen/dashboard', { replace: true });
+    else routerNavigate('/home', { replace: true });
+  }, [routerNavigate]);
 
   const logout = useCallback(() => {
     removeToken();
     dispatch({ type: 'LOGOUT' });
-  }, []);
+    routerNavigate('/login', { replace: true });
+  }, [routerNavigate]);
 
   const cartTotal = state.cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const cartCount = state.cart.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
-    <AppContext.Provider value={{
-      state, dispatch, navigate, goBack, addToCart, removeFromCart,
-      updateQuantity, showToast, cartTotal, cartCount,
-      loginWithToken, logout,
-    }}>
+    <AppContext.Provider
+      value={{
+        state, dispatch, navigate, goBack, addToCart, removeFromCart,
+        updateQuantity, showToast, cartTotal, cartCount,
+        loginWithToken, logout,
+      }}
+    >
       {children}
     </AppContext.Provider>
   );

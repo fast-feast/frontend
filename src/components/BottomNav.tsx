@@ -1,18 +1,24 @@
 import { motion } from 'framer-motion';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, ClipboardList, Gift, Users, User } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
 import type { TabName } from '@/types';
 
-const tabs: { key: TabName; icon: React.ElementType; label: string }[] = [
-  { key: 'home', icon: Home, label: 'Home' },
-  { key: 'orders', icon: ClipboardList, label: 'Orders' },
-  { key: 'offers', icon: Gift, label: 'Offers' },
-  { key: 'group', icon: Users, label: 'Group' },
-  { key: 'profile', icon: User, label: 'Profile' },
+const tabs: { key: TabName; icon: React.ElementType; label: string; path: string }[] = [
+  { key: 'home', icon: Home, label: 'Home', path: '/home' },
+  { key: 'orders', icon: ClipboardList, label: 'Orders', path: '/orders' },
+  { key: 'offers', icon: Gift, label: 'Offers', path: '/offers' },
+  { key: 'group', icon: Users, label: 'Group', path: '/group-order' },
+  { key: 'profile', icon: User, label: 'Profile', path: '/profile' },
 ];
 
 export default function BottomNav() {
   const { state, dispatch } = useApp();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const activeTab =
+    tabs.find((t) => location.pathname.startsWith(t.path))?.key || 'home';
 
   return (
     <motion.nav
@@ -32,7 +38,7 @@ export default function BottomNav() {
       >
         <div className="flex items-center justify-around sm:justify-center sm:gap-6 md:gap-10 lg:gap-16 h-14 px-2 md:px-4">
           {tabs.map((tab, index) => {
-            const isActive = state.activeTab === tab.key;
+            const isActive = activeTab === tab.key;
             const Icon = tab.icon;
             return (
               <motion.button
@@ -40,7 +46,10 @@ export default function BottomNav() {
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.15 + index * 0.05, type: 'spring', stiffness: 260, damping: 20 }}
-                onClick={() => dispatch({ type: 'SET_TAB', tab: tab.key })}
+                onClick={() => {
+                  dispatch({ type: 'SET_TAB', tab: tab.key });
+                  navigate(tab.path);
+                }}
                 className="flex flex-col items-center justify-center gap-1 w-14 sm:w-20 h-14 relative"
               >
                 {/* Active background glow */}
