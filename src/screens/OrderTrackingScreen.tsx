@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, CheckCircle2, ChefHat, PackageCheck, Phone } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
@@ -20,7 +19,6 @@ const statusMessages: Record<OrderStatus, string> = {
 };
 
 export default function OrderTrackingScreen() {
-  const { orderId } = useParams<{ orderId: string }>();
   const { state, goBack, dispatch, navigate } = useApp();
   const [status, setStatus] = useState<OrderStatus>('received');
   const [progress, setProgress] = useState(15);
