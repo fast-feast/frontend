@@ -26,7 +26,7 @@ export default function OrderSuccessScreen() {
   }, []);
 
   const handleTrack = () => {
-    navigate('orderTracking', 'push');
+    navigate('orderTracking', 'push', { orderId: state.activeOrderId || '' });
   };
 
   const handleOrderMore = () => {

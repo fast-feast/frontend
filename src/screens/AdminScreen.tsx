@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { RefreshCw, TrendingUp, TrendingDown, Minus, Tag, Percent, Users, FileText, Eye, Edit3 } from 'lucide-react';
+import { RefreshCw, Minus, Tag, Percent, Users, FileText, Eye, Edit3 } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
 import { getAdminStats } from '@/services/users';
 import { getAllCanteens, normalizeCanteen } from '@/services/canteens';

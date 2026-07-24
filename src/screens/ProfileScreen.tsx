@@ -207,19 +207,20 @@ export default function ProfileScreen() {
                       <span className="text-xs text-[#6B6B6B]">{(item as ValueItem).value}</span>
                     )}
                     {('hasToggle' in item) && (item as ToggleItem).hasToggle && (
-                      <button
+                      <div
+                        role="switch"
+                        aria-checked={toggles[item.label]}
                         onClick={(e) => { e.stopPropagation(); handleToggle(item.label); }}
-                        disabled={'disabled' in item ? (item as ToggleItem).disabled : false}
-                        className={`relative w-12 h-7 rounded-full transition-colors duration-200 ${
+                        className={`relative w-12 h-7 rounded-full transition-colors duration-200 cursor-pointer ${
                           toggles[item.label] ? 'food-gradient' : 'bg-card-elevated'
-                        } ${'disabled' in item && (item as ToggleItem).disabled ? 'opacity-50' : ''}`}
+                        } ${'disabled' in item && (item as ToggleItem).disabled ? 'opacity-50 pointer-events-none' : ''}`}
                       >
                         <motion.div
                           animate={{ x: toggles[item.label] ? 20 : 2 }}
                           transition={{ type: 'spring', stiffness: 500, damping: 25 }}
                           className="absolute top-1 w-5 h-5 rounded-full bg-white shadow"
                         />
-                      </button>
+                      </div>
                     )}
                     {('hasChevron' in item) && (item as ChevronItem).hasChevron && <ChevronRight size={16} className="text-[#6B6B6B]" />}
                   </motion.button>

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Star, Clock, Plus, Minus, Search, Leaf, ShoppingBag, ChevronRight } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
@@ -7,21 +8,31 @@ import { normalizeMenuItem } from '@/services/menu';
 import type { Canteen, MenuItem } from '@/types';
 
 export default function CanteenDetailScreen() {
-  const { state, goBack, addToCart, updateQuantity, showToast, navigate } = useApp();
+  const { state, goBack, addToCart, updateQuantity, showToast, navigate, dispatch } = useApp();
+  const { canteenId } = useParams<{ canteenId: string }>();
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [canteen, setCanteen] = useState<Canteen | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Sync URL param to context if needed (e.g. direct URL access)
+  useEffect(() => {
+    if (canteenId && canteenId !== state.selectedCanteenId) {
+      dispatch({ type: 'SELECT_CANTEEN', id: canteenId });
+    }
+  }, [canteenId]);
+
+  const activeCanteenId = state.selectedCanteenId || canteenId;
+
   useEffect(() => {
     async function loadData() {
-      if (!state.selectedCanteenId) {
+      if (!activeCanteenId) {
         setLoading(false);
         return;
       }
       try {
-        const res = await getCanteenWithMenu(state.selectedCanteenId);
+        const res = await getCanteenWithMenu(activeCanteenId);
         setCanteen(normalizeCanteen(res.data.canteen));
         setMenuItems(res.data.menuItems.map(normalizeMenuItem));
       } catch {
@@ -31,7 +42,7 @@ export default function CanteenDetailScreen() {
       }
     }
     loadData();
-  }, [state.selectedCanteenId]);
+  }, [activeCanteenId]);
 
   const filteredItems = useMemo(() => {
     let items = menuItems;

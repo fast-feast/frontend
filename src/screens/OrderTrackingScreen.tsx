@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, CheckCircle2, ChefHat, PackageCheck, Phone } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
@@ -19,7 +20,8 @@ const statusMessages: Record<OrderStatus, string> = {
 };
 
 export default function OrderTrackingScreen() {
-  const { state, goBack, dispatch } = useApp();
+  const { orderId } = useParams<{ orderId: string }>();
+  const { state, goBack, dispatch, navigate } = useApp();
   const [status, setStatus] = useState<OrderStatus>('received');
   const [progress, setProgress] = useState(15);
   const [queueAhead, setQueueAhead] = useState(5);
@@ -45,6 +47,7 @@ export default function OrderTrackingScreen() {
     setPickedUp(true);
     setTimeout(() => {
       dispatch({ type: 'SET_TAB', tab: 'home' });
+      navigate('home');
     }, 1500);
   };
 

@@ -55,7 +55,7 @@ export default function OrdersScreen() {
     const order = allOrders.find(o => o.id === orderId);
     if (order) {
       dispatch({ type: 'SET_ACTIVE_ORDER', orderId, token: order.token });
-      navigate('orderTracking', 'push');
+      navigate('orderTracking', 'push', { orderId });
     }
   };
 

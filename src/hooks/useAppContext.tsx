@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { TabName, CartItem, Order, MenuItem, ScreenName } from '@/types';
 import { userProfile } from '@/data/mockData';
 import { getStoredToken, removeToken, storeToken } from '@/services/api';
-import { screenToPath } from '@/routes/paths';
+import { buildPath, screenToPath } from '@/routes/paths';
 
 interface AppState {
   activeTab: TabName;
@@ -153,7 +153,7 @@ function appReducer(state: AppState, action: Action): AppState {
 interface AppContextType {
   state: AppState;
   dispatch: React.Dispatch<Action>;
-  navigate: (screen: ScreenName, direction?: 'push' | 'pop' | 'modal') => void;
+  navigate: (screen: ScreenName, direction?: 'push' | 'pop' | 'modal', params?: Record<string, string>) => void;
   goBack: () => void;
   addToCart: (itemId: string, preloadedItem?: CartItem) => void;
   removeFromCart: (itemId: string) => void;
@@ -178,10 +178,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // screens that call navigate('home') still work.
 
   const navigate = useCallback(
-    (screen: ScreenName, _direction?: 'push' | 'pop' | 'modal') => {
+    (screen: ScreenName, _direction?: 'push' | 'pop' | 'modal', params?: Record<string, string>) => {
       const path = screenToPath[screen];
       if (!path) return;
-      routerNavigate(path);
+      routerNavigate(buildPath(path, params));
     },
     [routerNavigate],
   );

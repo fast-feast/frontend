@@ -70,7 +70,7 @@ export default function HomeScreen() {
 
   const handleCanteenTap = (id: string) => {
     dispatch({ type: 'SELECT_CANTEEN', id });
-    navigate('canteenDetail', 'push');
+    navigate('canteenDetail', 'push', { canteenId: id });
   };
 
   const handleAddToCart = (item: MenuItem) => {
