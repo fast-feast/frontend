@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bot, LoaderCircle, Send, Sparkles, X, Plus } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { useApp } from '@/hooks/useAppContext';
 import { post } from '@/services/api';
 
@@ -24,7 +25,10 @@ type ChatMessage = {
 const quickPrompts = ['Best under ₹100', 'Fast vegetarian', 'What is trending?'];
 
 export default function GeminiAssistant() {
-  const { state, addToCart } = useApp();
+  const { addToCart } = useApp();
+  const location = useLocation();
+  const pathname = location.pathname;
+
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
@@ -33,8 +37,8 @@ export default function GeminiAssistant() {
   ]);
   const nextId = useRef(2);
 
-  const hidden = ['splash', 'onboarding', 'login', 'canteenDashboard', 'admin'].includes(state.screen);
-  const hasBottomNav = ['home', 'orders', 'offers', 'groupOrder', 'profile'].includes(state.screen);
+  const hidden = ['/splash', '/onboarding', '/login', '/canteen/dashboard', '/admin/dashboard'].includes(pathname);
+  const hasBottomNav = ['/home', '/orders', '/offers', '/group-order', '/profile'].includes(pathname);
   const hasCartBar = hasBottomNav && state.cart.length > 0;
   
   const positionClass = useMemo(() => {

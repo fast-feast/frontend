@@ -56,7 +56,7 @@ function AnimatedOutlet() {
 }
 
 function AppShell() {
-  const { state } = useApp();
+  useApp();
   const location = useLocation();
   const pathname = location.pathname;
 

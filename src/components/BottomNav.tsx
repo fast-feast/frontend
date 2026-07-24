@@ -13,7 +13,7 @@ const tabs: { key: TabName; icon: React.ElementType; label: string; path: string
 ];
 
 export default function BottomNav() {
-  const { state, dispatch } = useApp();
+  const { dispatch } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
 

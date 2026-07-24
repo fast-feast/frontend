@@ -56,14 +56,6 @@ const initialState: AppState = {
   user: { ...userProfile },
 };
 
-const tabScreenMap: Record<TabName, ScreenName> = {
-  home: 'home',
-  orders: 'orders',
-  offers: 'offers',
-  group: 'groupOrder',
-  profile: 'profile',
-};
-
 function appReducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'SET_TAB': {
