@@ -25,7 +25,7 @@ type ChatMessage = {
 const quickPrompts = ['Best under ₹100', 'Fast vegetarian', 'What is trending?'];
 
 export default function GeminiAssistant() {
-  const { addToCart } = useApp();
+  const { addToCart, state } = useApp();
   const location = useLocation();
   const pathname = location.pathname;
 
