@@ -119,7 +119,7 @@ export default function OrdersScreen() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="px-4 md:px-6 lg:px-8 pb-6 space-y-2"
+          className="px-4 md:px-6 lg:px-8 pb-6 space-y-2 max-w-3xl mx-auto"
         >
           {loading ? (
             <div className="text-center py-12">

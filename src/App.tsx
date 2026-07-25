@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AppProvider, useApp } from '@/hooks/useAppContext';
@@ -10,7 +11,7 @@ import UpdatePrompt from '@/components/UpdatePrompt';
 import AppRoutes from '@/routes';
 
 /** Screens that should show the bottom navigation bar. */
-const TAB_ROOTS = ['/home', '/orders', '/offers', '/group-order', '/profile'];
+const TAB_ROOTS = ['/home', '/orders', '/offers', '/group-order'];
 
 const pageVariants = {
   enter: (pathname: string) => ({
@@ -59,9 +60,13 @@ function AppShell() {
   useApp();
   const location = useLocation();
   const pathname = location.pathname;
+  const [isAIOpen, setIsAIOpen] = useState(false);
 
   const showNav = TAB_ROOTS.includes(pathname);
   const showCartBar = TAB_ROOTS.includes(pathname) && pathname !== '/cart';
+
+  const handleToggleAI = () => setIsAIOpen((v) => !v);
+  const handleCloseAI = () => setIsAIOpen(false);
 
   return (
     <div className="min-h-[100dvh] w-full bg-[#100B0E] flex justify-center items-stretch p-0 md:p-4">
@@ -82,7 +87,7 @@ function AppShell() {
         {showCartBar && <StickyCartBar />}
 
         {/* Bottom Navigation */}
-        {showNav && <BottomNav />}
+        {showNav && <BottomNav isAIOpen={isAIOpen} onToggleAI={handleToggleAI} />}
 
         {/* Toast Notifications */}
         <Toast />
@@ -93,8 +98,8 @@ function AppShell() {
         {/* PWA Update Prompt */}
         <UpdatePrompt />
 
-        {/* Gemini Food Assistant - only on home screen */}
-        {pathname === '/home' && <GeminiAssistant />}
+        {/* Gemini Food Assistant */}
+        <GeminiAssistant isOpen={isAIOpen} onClose={handleCloseAI} />
       </div>
     </div>
   );

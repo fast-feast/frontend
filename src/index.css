@@ -229,6 +229,52 @@
   }
 }
 
+/* Horizontal snap carousels: wider cards on desktop */
+@media (min-width: 768px) {
+  .carousel-card {
+    flex-shrink: 0;
+    width: 300px !important;
+  }
+}
+@media (min-width: 1024px) {
+  .carousel-card {
+    width: 340px !important;
+  }
+}
+@media (min-width: 1280px) {
+  .carousel-card {
+    width: 380px !important;
+  }
+}
+
+/* Carousel alternate: smaller cards (trending, fast items) */
+@media (min-width: 768px) {
+  .carousel-card-sm {
+    flex-shrink: 0;
+    width: 220px !important;
+  }
+  .carousel-card-xs {
+    flex-shrink: 0;
+    width: 180px !important;
+  }
+}
+@media (min-width: 1024px) {
+  .carousel-card-sm {
+    width: 240px !important;
+  }
+  .carousel-card-xs {
+    width: 200px !important;
+  }
+}
+@media (min-width: 1280px) {
+  .carousel-card-sm {
+    width: 260px !important;
+  }
+  .carousel-card-xs {
+    width: 220px !important;
+  }
+}
+
 /* Responsive padding utility */
 .responsive-px {
   padding-left: 1rem;
@@ -244,6 +290,52 @@
   .responsive-px {
     padding-left: 3rem;
     padding-right: 3rem;
+  }
+}
+
+/* Bottom nav width constraint on desktop */
+.nav-container {
+  width: 100%;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+@media (min-width: 768px) {
+  .nav-container {
+    max-width: 720px;
+  }
+}
+@media (min-width: 1024px) {
+  .nav-container {
+    max-width: 960px;
+  }
+}
+@media (min-width: 1280px) {
+  .nav-container {
+    max-width: 1120px;
+  }
+}
+
+/* Sticky cart bar width */
+.cartbar-container {
+  width: 100%;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+@media (min-width: 768px) {
+  .cartbar-container {
+    max-width: 640px;
+  }
+}
+@media (min-width: 1024px) {
+  .cartbar-container {
+    max-width: 720px;
+  }
+}
+@media (min-width: 1280px) {
+  .cartbar-container {
+    max-width: 800px;
   }
 }
 

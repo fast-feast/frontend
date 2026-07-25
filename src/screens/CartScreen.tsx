@@ -37,6 +37,7 @@ export default function CartScreen() {
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto no-scrollbar px-4 md:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto">
         {/* Cart Items */}
         <AnimatePresence>
           {state.cart.map((item) => (
@@ -215,6 +216,7 @@ export default function CartScreen() {
         )}
 
         <div className="h-4" />
+        </div>
       </div>
 
       {/* Proceed Button */}

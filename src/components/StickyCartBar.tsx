@@ -23,7 +23,7 @@ export default function StickyCartBar() {
         className="flex-shrink-0 w-full z-40 flex justify-center px-3 md:px-6 lg:px-8"
       >
         <div
-          className="w-full max-w-[430px] sm:max-w-[540px] md:max-w-[640px] lg:max-w-[720px] xl:max-w-[800px] rounded-2xl px-4 md:px-5 py-3 flex items-center justify-between"
+          className="cartbar-container rounded-2xl px-4 md:px-5 py-3 flex items-center justify-between"
           style={{
             background: '#1A0D12',
             borderTop: '1px solid rgba(217, 74, 90, 0.08)',

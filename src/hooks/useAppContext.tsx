@@ -5,6 +5,14 @@ import { userProfile } from '@/data/mockData';
 import { getStoredToken, removeToken, storeToken } from '@/services/api';
 import { buildPath, screenToPath } from '@/routes/paths';
 
+interface GroupMemberData {
+  name: string;
+  avatar: string;
+  color: string;
+  itemCount: number;
+  subtotal: number;
+}
+
 interface AppState {
   activeTab: TabName;
   selectedCanteenId: string | null;
@@ -17,6 +25,9 @@ interface AppState {
   token: string | null;
   toast: { message: string; type: 'success' | 'warning' | 'error' } | null;
   user: typeof userProfile;
+  groupTotal: number;
+  isGroupOrder: boolean;
+  groupMembers: GroupMemberData[];
 }
 
 type Action =
@@ -38,7 +49,10 @@ type Action =
   | { type: 'UPDATE_WALLET'; amount: number }
   | { type: 'ADD_ORDER'; order: Order }
   | { type: 'SET_ORDERS'; orders: Order[] }
-  | { type: 'SET_USER'; user: typeof userProfile };
+  | { type: 'SET_USER'; user: typeof userProfile }
+  | { type: 'SET_GROUP_TOTAL'; total: number }
+  | { type: 'SET_GROUP_DATA'; total: number; members: GroupMemberData[] }
+  | { type: 'CLEAR_GROUP_DATA' };
 
 const storedToken = getStoredToken();
 
@@ -54,6 +68,9 @@ const initialState: AppState = {
   token: storedToken,
   toast: null,
   user: { ...userProfile },
+  groupTotal: 0,
+  isGroupOrder: false,
+  groupMembers: [],
 };
 
 function appReducer(state: AppState, action: Action): AppState {
@@ -92,7 +109,7 @@ function appReducer(state: AppState, action: Action): AppState {
       };
     }
     case 'CLEAR_CART':
-      return { ...state, cart: [] };
+      return { ...state, cart: [], groupTotal: 0, isGroupOrder: false, groupMembers: [] };
     case 'SET_ACTIVE_ORDER':
       return { ...state, activeOrderId: action.orderId, tokenNumber: action.token };
     case 'COMPLETE_ONBOARDING':
@@ -123,6 +140,9 @@ function appReducer(state: AppState, action: Action): AppState {
         orders: [],
         activeTab: 'home',
         user: { ...userProfile },
+        groupTotal: 0,
+        isGroupOrder: false,
+        groupMembers: [],
       };
     case 'SHOW_TOAST':
       return { ...state, toast: { message: action.message, type: action.toastType } };
@@ -143,6 +163,12 @@ function appReducer(state: AppState, action: Action): AppState {
       return { ...state, orders: [action.order, ...state.orders] };
     case 'SET_ORDERS':
       return { ...state, orders: action.orders };
+    case 'SET_GROUP_TOTAL':
+      return { ...state, groupTotal: action.total };
+    case 'SET_GROUP_DATA':
+      return { ...state, groupTotal: action.total, isGroupOrder: true, groupMembers: action.members };
+    case 'CLEAR_GROUP_DATA':
+      return { ...state, groupTotal: 0, isGroupOrder: false, groupMembers: [] };
     case 'SET_USER':
       return { ...state, user: action.user };
     default:
