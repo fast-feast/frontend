@@ -127,7 +127,7 @@ export default function SplashScreen() {
         className="mt-4 text-xs text-[#6B6B6B] font-medium tracking-wide"
         style={{ animation: 'splash-text-pulse 2s 0.9s ease-in-out infinite' }}
       >
-        Serving up deliciousness...
+        Hungry? Let's fix that! 🍔
       </p>
     </div>
   );

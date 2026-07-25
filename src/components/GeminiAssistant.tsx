@@ -37,7 +37,7 @@ export default function GeminiAssistant({ isOpen, onClose }: GeminiAssistantProp
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: 1, role: 'assistant', text: 'Hi! Tell me your budget or craving and I will find something tasty.' },
+    { id: 1, role: 'assistant', text: '🍕 Hey foodie! Tell me your budget or craving, and I\'ll find something delicious for you!' },
   ]);
   const nextId = useRef(2);
 
@@ -71,7 +71,7 @@ export default function GeminiAssistant({ isOpen, onClose }: GeminiAssistantProp
           items: response.data.items 
         }
       ]);
-    } catch (error) {
+    } catch {
       setMessages((current) => [
         ...current, 
         {

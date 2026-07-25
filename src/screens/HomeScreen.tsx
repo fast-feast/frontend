@@ -56,17 +56,10 @@ export default function HomeScreen() {
     loadData();
   }, []);
 
-  const greeting = useMemo(() => {
-    const hour = new Date().getHours();
-    const name = state.user.name.split(' ')[0];
-    if (hour < 5) return `Late night, ${name}`;
-    if (hour < 7) return `Rise and shine, ${name}`;
-    if (hour < 12) return `Good morning, ${name}`;
-    if (hour < 14) return `Lunch cravings, ${name}`;
-    if (hour < 17) return `Good afternoon, ${name}`;
-    if (hour < 21) return `Good evening, ${name}`;
-    return `Night cravings, ${name}`;
-  }, [state.user.name]);
+  const activeOrder = useMemo(() => {
+    if (!state.activeOrderId) return null;
+    return state.orders.find(o => o.id === state.activeOrderId) || null;
+  }, [state.orders, state.activeOrderId]);
 
   // Filtering logic
   const matchesSearch = useMemo(() => {
@@ -163,10 +156,43 @@ export default function HomeScreen() {
       >
         <div className="flex items-start justify-between max-w-5xl mx-auto">
           <div>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white tracking-tight">{greeting}</h1>
-            <p className="text-sm md:text-base text-[#8A6A78] mt-0.5">
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short' })}
-            </p>
+            {activeOrder ? (
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                onClick={() => navigate('orderTracking', 'push')}
+                className="text-left group"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="relative flex w-2 h-2">
+                    <span className="absolute inline-flex w-full h-full rounded-full bg-[#FF6B35] opacity-75 animate-ping" />
+                    <span className="relative inline-flex w-2 h-2 rounded-full bg-[#FF6B35]" />
+                  </span>
+                  <span className="text-xs font-semibold text-[#FF6B35] uppercase tracking-widest">
+                    Order Active
+                  </span>
+                </div>
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white tracking-tight mt-1 group-hover:text-[#FF6B35] transition-colors">
+                  ~{activeOrder.estimatedTime}
+                </h1>
+                <p className="text-sm md:text-base text-[#8A6A78] mt-0.5 flex items-center gap-1">
+                  <Clock size={14} className="text-[#6B4D5A]" />
+                  {activeOrder.queuePosition
+                    ? `${activeOrder.queuePosition} orders ahead`
+                    : 'Preparing your order'}
+                  <ChevronRight size={14} className="text-[#6B4D5A] group-hover:translate-x-0.5 transition-transform" />
+                </p>
+              </motion.button>
+            ) : (
+              <>
+                        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white tracking-tight">
+                  Fast{' '}<span className="text-[#FF6B35]">Feast</span>
+                </h1>
+                <p className="text-sm md:text-base text-[#8A6A78] mt-0.5">
+                  Fresh, fast & always tasty
+                </p>
+              </>
+            )}
           </div>
 
           {/* Profile icon */}
