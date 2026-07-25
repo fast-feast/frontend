@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bot, LoaderCircle, Send, Sparkles, X, Plus } from 'lucide-react';
+import { LoaderCircle, Send, Sparkles, X, Plus } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useApp } from '@/hooks/useAppContext';
 import { post } from '@/services/api';
