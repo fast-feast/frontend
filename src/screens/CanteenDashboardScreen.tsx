@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, UtensilsCrossed, RefreshCw, AlertTriangle, X, Settings } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
-import { getOrdersByCanteen, updateOrderStatus } from '@/services/orders';
+import { getOrdersByCanteen, updateOrderStatus, type OrderDTO } from '@/services/orders';
 import { getDashboardStats, updateCanteen } from '@/services/canteens';
 import { extractErrorMessage } from '@/services/api';
 
@@ -44,6 +44,20 @@ function timeAgo(dateStr: string): string {
   return `${hrs}h ${mins % 60}m ago`;
 }
 
+function normalizeDashboardOrders(orders: OrderDTO[]): DashboardOrderItem[] {
+  return orders.map(order => ({
+    _id: order._id,
+    token: order.token,
+    status: order.status as OrderStatus,
+    items: order.items.map(item => ({ name: item.name, quantity: item.quantity })),
+    total: order.finalTotal || order.subtotal,
+    notes: order.notes,
+    isGroupOrder: order.isGroupOrder,
+    createdAt: order.createdAt,
+    canteenName: order.canteenName,
+  }));
+}
+
 export default function CanteenDashboardScreen() {
   const { state, showToast } = useApp();
   const { canteen, canteenId } = state;
@@ -67,7 +81,11 @@ export default function CanteenDashboardScreen() {
         getOrdersByCanteen(canteenId),
         getDashboardStats(canteenId),
       ]);
+<<<<<<< HEAD
       setOrders(ordersRes.data as unknown as DashboardOrderItem[]);
+=======
+      setOrders(normalizeDashboardOrders(ordersRes.data));
+>>>>>>> 194fc05 (updated canteen)
       setTotalOrders(statsRes.data.totalOrders);
     } catch (err) {
       setError(extractErrorMessage(err));

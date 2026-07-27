@@ -2,8 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
+<<<<<<< HEAD
   ArrowLeft, Save, Store, Phone, Clock, Image,
   Tags, AlertTriangle,
+=======
+  ArrowLeft, Save, Store, Phone, Clock, Image, Tags, AlertTriangle,
+>>>>>>> 194fc05 (updated canteen)
 } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
 import { updateCanteen } from '@/services/canteens';
@@ -32,6 +36,7 @@ export default function CanteenSettingsScreen() {
 
   const [form, setForm] = useState<FormFields>({
     name: canteen?.name || '',
+<<<<<<< HEAD
     description: (cRecord?.description as string) || '',
     contactPhone: (cRecord?.contactPhone as string) || '',
     address: (cRecord?.address as string) || '',
@@ -40,6 +45,16 @@ export default function CanteenSettingsScreen() {
     rushLevel: canteen?.rushLevel || 'low',
     bannerImage: canteen?.bannerImage || '',
     logoImage: (cRecord?.logoImage as string) || '',
+=======
+    description: canteen?.description || '',
+    contactPhone: canteen?.contactPhone || '',
+    address: canteen?.address || '',
+    openingHours: canteen?.openingHours || '',
+    avgWaitTime: canteen?.avgWaitTime || '',
+    rushLevel: canteen?.rushLevel || 'low',
+    bannerImage: canteen?.bannerImage || '',
+    logoImage: canteen?.logoImage || '',
+>>>>>>> 194fc05 (updated canteen)
     tags: (canteen?.tags || []).join(', '),
     categories: (canteen?.categories || []).filter(c => c !== 'All').join(', '),
   });

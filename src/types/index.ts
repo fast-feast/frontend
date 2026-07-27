@@ -1,12 +1,17 @@
 export interface Canteen {
   id: string;
   name: string;
+  description?: string;
+  contactPhone?: string;
+  address?: string;
+  openingHours?: string;
   rating: number;
   ratingCount: string;
   tags: string[];
   rushLevel: 'low' | 'medium' | 'high';
   avgWaitTime: string;
   bannerImage: string;
+  logoImage?: string;
   categories: string[];
   isActive?: boolean;
 }
