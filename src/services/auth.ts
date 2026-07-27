@@ -52,7 +52,7 @@ export function verifyOtp(data: VerifyOtpRequest) {
 }
 
 export function getMe() {
-  return get<{ user: AuthResponse['user'] }>('/auth/me');
+  return get<{ user: AuthResponse['user']; canteen?: Record<string, unknown> | null }>('/auth/me');
 }
 
 export function updateProfile(data: Partial<{ name: string; phone: string }>) {

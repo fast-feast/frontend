@@ -8,6 +8,7 @@ export interface Canteen {
   avgWaitTime: string;
   bannerImage: string;
   categories: string[];
+  isActive?: boolean;
 }
 
 export interface MenuItem {
@@ -83,8 +84,8 @@ export interface DashboardOrder {
 }
 
 export type ScreenName = 
-  | 'splash' | 'onboarding' | 'login' | 'home' | 'canteenDetail' | 'cart' 
+  | 'splash' | 'onboarding' | 'authLanding' | 'login' | 'home' | 'canteenDetail' | 'cart' 
   | 'payment' | 'orderSuccess' | 'orderTracking' | 'orders' 
-  | 'groupOrder' | 'offers' | 'profile' | 'canteenDashboard' | 'admin';
+  | 'groupOrder' | 'offers' | 'profile' | 'canteenDashboard' | 'menuManagement' | 'canteenSettings' | 'admin';
 
 export type TabName = 'home' | 'orders' | 'offers' | 'group' | 'profile';

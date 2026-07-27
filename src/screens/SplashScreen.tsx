@@ -39,12 +39,12 @@ export default function SplashScreen() {
       if (state.token) {
         try {
           const res = await getMe();
-          const user = res.data.user;
+          const { user, canteen } = res.data;
           loginWithToken(state.token, {
             name: user.name,
             phone: user.phone,
             email: user.email,
-          });
+          }, canteen);
         } catch {
           // Token invalid, stay logged out
         }
@@ -64,7 +64,7 @@ export default function SplashScreen() {
           else if (role === 'canteen_owner') navigate('/canteen/dashboard', { replace: true });
           else navigate('/home', { replace: true });
         } else {
-          navigate('/login', { replace: true });
+          navigate('/auth', { replace: true });
         }
       } else {
         navigate('/onboarding', { replace: true });

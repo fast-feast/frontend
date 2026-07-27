@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { TabName, CartItem, Order, MenuItem, ScreenName } from '@/types';
+import type { TabName, CartItem, Order, MenuItem, ScreenName, Canteen } from '@/types';
 import { userProfile } from '@/data/mockData';
 import { getStoredToken, removeToken, storeToken } from '@/services/api';
 import { buildPath, screenToPath } from '@/routes/paths';
@@ -25,9 +25,14 @@ interface AppState {
   token: string | null;
   toast: { message: string; type: 'success' | 'warning' | 'error' } | null;
   user: typeof userProfile;
+<<<<<<< Updated upstream
   groupTotal: number;
   isGroupOrder: boolean;
   groupMembers: GroupMemberData[];
+=======
+  canteen: (Canteen & { _id: string }) | null;
+  canteenId: string | null;
+>>>>>>> Stashed changes
 }
 
 type Action =
@@ -40,7 +45,7 @@ type Action =
   | { type: 'SET_ACTIVE_ORDER'; orderId: string; token: string }
   | { type: 'COMPLETE_ONBOARDING' }
   | { type: 'SET_TOKEN'; token: string | null }
-  | { type: 'LOGIN'; name: string; phone: string; email: string; role?: 'user' | 'canteen_owner' | 'admin' }
+  | { type: 'LOGIN'; name: string; phone: string; email: string; role?: 'user' | 'canteen_owner' | 'admin'; canteen?: Record<string, unknown> | null }
   | { type: 'LOGOUT' }
   | { type: 'SHOW_TOAST'; message: string; toastType: 'success' | 'warning' | 'error' }
   | { type: 'HIDE_TOAST' }
@@ -68,9 +73,14 @@ const initialState: AppState = {
   token: storedToken,
   toast: null,
   user: { ...userProfile },
+<<<<<<< Updated upstream
   groupTotal: 0,
   isGroupOrder: false,
   groupMembers: [],
+=======
+  canteen: null,
+  canteenId: null,
+>>>>>>> Stashed changes
 };
 
 function appReducer(state: AppState, action: Action): AppState {
@@ -128,6 +138,8 @@ function appReducer(state: AppState, action: Action): AppState {
           email: action.email,
           role: action.role || 'user',
         },
+        canteen: (action.canteen as AppState['canteen']) || null,
+        canteenId: ((action.canteen as Record<string, unknown>)?._id as string) || null,
       };
     case 'LOGOUT':
       return {
@@ -140,9 +152,14 @@ function appReducer(state: AppState, action: Action): AppState {
         orders: [],
         activeTab: 'home',
         user: { ...userProfile },
+<<<<<<< Updated upstream
         groupTotal: 0,
         isGroupOrder: false,
         groupMembers: [],
+=======
+        canteen: null,
+        canteenId: null,
+>>>>>>> Stashed changes
       };
     case 'SHOW_TOAST':
       return { ...state, toast: { message: action.message, type: action.toastType } };
@@ -188,7 +205,7 @@ interface AppContextType {
   cartTotal: number;
   cartCount: number;
   /** Perform a full login: store token, navigate to role-specific dashboard */
-  loginWithToken: (token: string, user: { name: string; phone: string; email: string; role?: 'user' | 'canteen_owner' | 'admin' }) => void;
+  loginWithToken: (token: string, user: { name: string; phone: string; email: string; role?: 'user' | 'canteen_owner' | 'admin' }, canteen?: Record<string, unknown> | null) => void;
   /** Clear all auth state and navigate to role selection */
   logout: () => void;
 }
@@ -257,20 +274,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTimeout(() => dispatch({ type: 'HIDE_TOAST' }), 3000);
   }, []);
 
-  const loginWithToken = useCallback((
+ const loginWithToken = useCallback(
+  (
     token: string,
-    user: { name: string; phone: string; email: string; role?: 'user' | 'canteen_owner' | 'admin' }
+    user: {
+      name: string;
+      phone: string;
+      email: string;
+      role?: 'user' | 'canteen_owner' | 'admin';
+    },
+    canteen?: Record<string, unknown> | null
   ) => {
     storeToken(token);
-    dispatch({ type: 'SET_TOKEN', token });
-    dispatch({ type: 'LOGIN', name: user.name, phone: user.phone, email: user.email, role: user.role });
-    // Navigate to role-appropriate dashboard
-    const role = user.role;
-    if (role === 'admin') routerNavigate('/admin/dashboard', { replace: true });
-    else if (role === 'canteen_owner') routerNavigate('/canteen/dashboard', { replace: true });
-    else routerNavigate('/home', { replace: true });
-  }, [routerNavigate]);
 
+    dispatch({ type: 'SET_TOKEN', token });
+
+    dispatch({
+      type: 'LOGIN',
+      name: user.name,
+      phone: user.phone,
+      email: user.email,
+      role: user.role,
+      canteen,
+    });
+
+    const role = user.role;
+
+    if (role === 'admin') {
+      routerNavigate('/admin/dashboard', { replace: true });
+    } else if (role === 'canteen_owner') {
+      routerNavigate('/canteen/dashboard', { replace: true });
+    } else {
+      routerNavigate('/home', { replace: true });
+    }
+  },
+  [routerNavigate]
+);
   const logout = useCallback(() => {
     removeToken();
     dispatch({ type: 'LOGOUT' });
