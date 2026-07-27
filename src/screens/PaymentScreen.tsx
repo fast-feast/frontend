@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Wallet, Store, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, Wallet, Store, Check, Loader2, Users, UtensilsCrossed } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
 import { placeOrder } from '@/services/orders';
 import { extractErrorMessage } from '@/services/api';
@@ -29,9 +29,12 @@ export default function PaymentScreen() {
     { id: 'counter', name: 'Pay at Counter', detail: 'Show token at pickup', icon: '🏪', type: 'counter' },
   ];
 
-  const gst = Math.round(cartTotal * 0.05);
-  const discount = cartTotal > 200 ? 20 : 0;
-  const finalTotal = cartTotal + gst + 5 - discount;
+  // Use group order total if coming from group order, otherwise use cart total
+  const baseTotal = state.groupTotal > 0 ? state.groupTotal : cartTotal;
+
+  const gst = Math.round(baseTotal * 0.05);
+  const discount = baseTotal > 200 ? 20 : 0;
+  const finalTotal = baseTotal + gst + 5 - discount;
 
   const handlePay = async () => {
     setProcessing(true);
@@ -74,6 +77,10 @@ export default function PaymentScreen() {
     }
   };
 
+  const isGroupPayment = state.isGroupOrder;
+  const groupMembers = state.groupMembers;
+  const totalItems = groupMembers.reduce((s, m) => s + m.itemCount, 0);
+
   return (
     <div className="screen-surface h-full flex flex-col">
       {/* Header */}
@@ -81,15 +88,92 @@ export default function PaymentScreen() {
         <motion.button whileTap={{ scale: 0.92 }} onClick={goBack} className="w-10 h-10 rounded-full bg-card flex items-center justify-center">
           <ArrowLeft size={20} className="text-white" />
         </motion.button>
-        <h1 className="text-xl font-bold text-white">Payment</h1>
+        <h1 className="text-xl font-bold text-white">{isGroupPayment ? 'Group Payment' : 'Payment'}</h1>
+        {isGroupPayment && (
+          <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-500/15">
+            <Users size={12} className="text-purple-400" />
+            <span className="text-[10px] text-purple-400 font-medium">{groupMembers.length} people</span>
+          </div>
+        )}
       </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar px-4 md:px-6 lg:px-8">
-        {/* Order Summary */}
+      <div className="flex-1 overflow-y-auto no-scrollbar px-4 md:px-6 lg:px-8 max-w-4xl mx-auto w-full">
+        {isGroupPayment ? (
+          <>
+            {/* Group Order Summary - Member Breakdown */}
+            <div className="bg-card rounded-2xl p-4 mb-4 border border-purple-500/10">
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b border-white/[0.06]">
+                <UtensilsCrossed size={16} className="text-purple-400" />
+                <span className="text-xs font-semibold text-white">Shared Order Breakdown</span>
+                <span className="ml-auto text-[10px] text-[#6B6B6B]">{totalItems} items total</span>
+              </div>
+              <div className="space-y-2.5">
+                {groupMembers.map((member, i) => (
+                  <motion.div
+                    key={member.name}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.06 }}
+                    className="flex items-center gap-3"
+                  >
+                    <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${member.color} flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0`}>
+                      {member.avatar}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-white truncate">{member.name}</p>
+                      <p className="text-[10px] text-[#6B6B6B]">
+                        {member.itemCount} item{member.itemCount !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-[#FF6B35]">₹{member.subtotal}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+              {/* Group subtotal */}
+              <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between">
+                <span className="text-xs text-[#A0A0A0]">Items Total</span>
+                <span className="text-base font-bold text-white">₹{baseTotal}</span>
+              </div>
+            </div>
+          </>
+        ) : (
+          /* Regular Order Summary */
+          <div className="bg-card rounded-2xl p-4 mb-4">
+            <p className="text-xs text-[#A0A0A0]">Order Total</p>
+            <p className="text-2xl font-bold text-[#FF6B35]">₹{finalTotal}</p>
+            <p className="text-[10px] text-[#6B6B6B] mt-0.5">{state.cart.length} items • Including GST & fees</p>
+          </div>
+        )}
+
+        {/* Fee Breakdown - same for both */}
         <div className="bg-card rounded-2xl p-4 mb-4">
-          <p className="text-xs text-[#A0A0A0]">Order Total</p>
-          <p className="text-2xl font-bold text-[#FF6B35]">₹{finalTotal}</p>
-          <p className="text-[10px] text-[#6B6B6B] mt-0.5">{state.cart.length} items • Including GST & fees</p>
+          <p className="text-xs text-[#A0A0A0] mb-2">Price Breakdown</p>
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-xs">
+              <span className="text-[#6B6B6B]">Items Total</span>
+              <span className="text-white">₹{baseTotal}</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-[#6B6B6B]">GST (5%)</span>
+              <span className="text-white">₹{gst}</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-[#6B6B6B]">Platform Fee</span>
+              <span className="text-white">₹5</span>
+            </div>
+            {discount > 0 && (
+              <div className="flex justify-between text-xs">
+                <span className="text-green-400">Discount</span>
+                <span className="text-green-400">-₹{discount}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-xs pt-1.5 mt-1.5 border-t border-white/[0.06]">
+              <span className="text-[#A0A0A0] font-medium">Final Total</span>
+              <span className="text-base font-bold text-[#FF6B35]">₹{finalTotal}</span>
+            </div>
+          </div>
         </div>
 
         {/* Payment Methods */}
@@ -174,7 +258,10 @@ export default function PaymentScreen() {
                   Processing...
                 </>
               ) : (
-                <>Pay ₹{finalTotal}</>
+                <>
+                  {isGroupPayment && <Users size={18} className="text-white/70" />}
+                  Pay ₹{finalTotal}
+                </>
               )}
             </motion.button>
           )}

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bot, LoaderCircle, Send, Sparkles, X, Plus } from 'lucide-react';
+import { LoaderCircle, Send, Sparkles, X, Plus } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useApp } from '@/hooks/useAppContext';
 import { post } from '@/services/api';
@@ -24,36 +24,32 @@ type ChatMessage = {
 
 const quickPrompts = ['Best under ₹100', 'Fast vegetarian', 'What is trending?'];
 
-export default function GeminiAssistant() {
+interface GeminiAssistantProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function GeminiAssistant({ isOpen, onClose }: GeminiAssistantProps) {
   const { addToCart, state } = useApp();
   const location = useLocation();
   const pathname = location.pathname;
 
-  const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: 1, role: 'assistant', text: 'Hi! Tell me your budget or craving and I will find something tasty.' },
+    { id: 1, role: 'assistant', text: '🍕 Hey foodie! Tell me your budget or craving, and I\'ll find something delicious for you!' },
   ]);
   const [inputHistory, setInputHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
   const nextId = useRef(2);
 
   const hidden = ['/splash', '/onboarding', '/login', '/canteen/dashboard', '/admin/dashboard'].includes(pathname);
-  const hasBottomNav = ['/home', '/orders', '/offers', '/group-order', '/profile'].includes(pathname);
-  const hasCartBar = hasBottomNav && state.cart.length > 0;
-  
-  const positionClass = useMemo(() => {
-    if (hasCartBar) return 'bottom-44';
-    if (hasBottomNav) return 'bottom-24';
-    return 'bottom-4';
-  }, [hasBottomNav, hasCartBar]);
-  
+  const hasCartBar = state.cart.length > 0;
+
   const panelHeightClass = useMemo(() => {
-    if (hasCartBar) return 'h-[min(520px,calc(100dvh-16rem))]';
-    if (hasBottomNav) return 'h-[min(520px,calc(100dvh-11rem))]';
-    return 'h-[min(520px,calc(100dvh-6rem))]';
-  }, [hasBottomNav, hasCartBar]);
+    if (hasCartBar) return 'h-[min(480px,calc(100dvh-16rem))]';
+    return 'h-[min(480px,calc(100dvh-13rem))]';
+  }, [hasCartBar]);
 
   if (hidden) return null;
 
@@ -96,7 +92,7 @@ export default function GeminiAssistant() {
           items: response.data.items 
         }
       ]);
-    } catch (error) {
+    } catch {
       setMessages((current) => [
         ...current, 
         {
@@ -139,16 +135,16 @@ export default function GeminiAssistant() {
   };
 
   return (
-    <div className={`absolute ${positionClass} right-3 sm:right-5 z-[60] pointer-events-none`}>
+    <div className="fixed bottom-0 left-0 right-0 z-[60] pointer-events-none flex justify-center">
       <AnimatePresence>
         {isOpen && (
           <motion.section
-            initial={{ opacity: 0, y: 18, scale: 0.96 }}
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 14, scale: 0.97 }}
-            transition={{ duration: 0.2 }}
+            exit={{ opacity: 0, y: 20, scale: 0.97 }}
+            transition={{ duration: 0.25, type: 'spring', stiffness: 300, damping: 25 }}
             aria-label="Smart food assistant"
-            className={`pointer-events-auto absolute bottom-16 right-0 w-[calc(100vw-1.5rem)] max-w-[380px] ${panelHeightClass} overflow-hidden rounded-2xl border border-[#FFD6BC]/15 bg-[#1C1217]/95 shadow-[0_24px_70px_rgba(0,0,0,0.55)] backdrop-blur-xl flex flex-col`}
+            className={`pointer-events-auto w-[calc(100%-1.5rem)] max-w-[400px] mb-16 ${panelHeightClass} overflow-hidden rounded-2xl border border-[#FFD6BC]/15 bg-[#1C1217]/95 shadow-[0 24px_70px_rgba(0,0,0,0.55)] backdrop-blur-xl flex flex-col`}
           >
             <header className="flex items-center justify-between px-4 py-3 border-b border-white/[0.08] bg-[#2B1A22]">
               <div className="flex items-center gap-3 min-w-0">
@@ -162,7 +158,7 @@ export default function GeminiAssistant() {
               </div>
               <button
                 type="button"
-                onClick={() => setIsOpen(false)}
+                onClick={onClose}
                 aria-label="Close assistant"
                 className="w-9 h-9 flex items-center justify-center rounded-full text-[#C4B7B0] hover:bg-white/[0.08]"
               >
@@ -250,15 +246,6 @@ export default function GeminiAssistant() {
         )}
       </AnimatePresence>
 
-      <motion.button
-        type="button"
-        onClick={() => setIsOpen((open) => !open)}
-        whileTap={{ scale: 0.92 }}
-        aria-label={isOpen ? 'Close food assistant' : 'Open food assistant'}
-        className="pointer-events-auto ml-auto w-14 h-14 rounded-full food-gradient text-white shadow-[0_10px_30px_rgba(232,63,77,0.35)] flex items-center justify-center border border-white/20"
-      >
-        {isOpen ? <X size={22} /> : <Bot size={23} />}
-      </motion.button>
     </div>
   );
 }

@@ -91,6 +91,10 @@ export function getOrderById(id: string) {
   return get<OrderDTO>(`/orders/${id}`);
 }
 
+export function getOrdersByCanteen(canteenId: string, params?: Record<string, string>) {
+  return get<OrderDTO[]>(`/orders/canteen/${canteenId}`, { params });
+}
+
 export function updateOrderStatus(id: string, status: string) {
   return patch<OrderDTO>(`/orders/${id}/status`, { status });
 }

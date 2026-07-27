@@ -24,6 +24,7 @@ export function normalizeCanteen(dto: CanteenDTO): Canteen {
     avgWaitTime: dto.avgWaitTime || '5 min',
     bannerImage: dto.bannerImage,
     categories: dto.categories || ['All'],
+    isActive: dto.isActive,
   };
 }
 
@@ -54,4 +55,8 @@ export function updateCanteen(id: string, data: Partial<CanteenDTO>) {
 
 export function deleteCanteen(id: string) {
   return del<null>(`/canteens/${id}`);
+}
+
+export function getDashboardStats(id: string) {
+  return get<{ totalCanteens: number; totalOrders: number; recentOrders: import('./orders').OrderDTO[] }>(`/canteens/${id}/dashboard`);
 }

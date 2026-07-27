@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Wallet, Bell, Moon, CreditCard, MapPin, Globe, HelpCircle, Info, LogOut, Pencil, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Wallet, Bell, Moon, CreditCard, MapPin, Globe, HelpCircle, Info, LogOut, Pencil, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/hooks/useAppContext';
 import { getUserProfile } from '@/services/users';
 
@@ -58,6 +59,7 @@ const settingsGroups: SettingGroup[] = [
 ];
 
 export default function ProfileScreen() {
+  const navigate = useNavigate();
   const { state, logout, showToast, dispatch } = useApp();
   const [toggles, setToggles] = useState<Record<string, boolean>>({
     'Notifications': true,
@@ -102,7 +104,14 @@ export default function ProfileScreen() {
   return (
     <div className="screen-surface h-full flex flex-col overflow-y-auto no-scrollbar">
       {/* Header */}
-      <div className="pt-4 px-4 md:px-6 lg:px-8 pb-3">
+      <div className="pt-4 px-4 md:px-6 lg:px-8 pb-3 flex items-center gap-3">
+        <motion.button
+          whileTap={{ scale: 0.92 }}
+          onClick={() => navigate('/home')}
+          className="w-9 h-9 rounded-full bg-card flex items-center justify-center hover:bg-card-elevated transition-colors"
+        >
+          <ArrowLeft size={18} className="text-white" />
+        </motion.button>
         <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Profile</h1>
       </div>
 

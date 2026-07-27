@@ -7,6 +7,7 @@ import type { ScreenName } from '@/types';
 export const ROUTES = {
   SPLASH: '/',
   ONBOARDING: '/onboarding',
+  AUTH_LANDING: '/auth',
   ROLE_SELECTION: '/role-selection',
   LOGIN: '/login',
   LOGIN_CUSTOMER: '/login/customer',
@@ -23,6 +24,8 @@ export const ROUTES = {
   OFFERS: '/offers',
   PROFILE: '/profile',
   CANTEEN_DASHBOARD: '/canteen/dashboard',
+  MENU_MANAGEMENT: '/canteen/menu',
+  CANTEEN_SETTINGS: '/canteen/settings',
   ADMIN_DASHBOARD: '/admin/dashboard',
 } as const;
 
@@ -34,6 +37,7 @@ export const ROUTES = {
 export const screenToPath: Record<ScreenName, string> = {
   splash: ROUTES.SPLASH,
   onboarding: ROUTES.ONBOARDING,
+  authLanding: ROUTES.AUTH_LANDING,
   login: ROUTES.LOGIN,
   home: ROUTES.HOME,
   canteenDetail: ROUTES.CANTEEN_DETAIL,
@@ -46,6 +50,8 @@ export const screenToPath: Record<ScreenName, string> = {
   offers: ROUTES.OFFERS,
   profile: ROUTES.PROFILE,
   canteenDashboard: ROUTES.CANTEEN_DASHBOARD,
+  menuManagement: ROUTES.MENU_MANAGEMENT,
+  canteenSettings: ROUTES.CANTEEN_SETTINGS,
   admin: ROUTES.ADMIN_DASHBOARD,
 };
 

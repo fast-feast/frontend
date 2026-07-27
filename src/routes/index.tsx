@@ -8,6 +8,7 @@ import { ProtectedRoute, PublicRoute, RoleRoute } from '@/guards/ProtectedRoute'
 
 const SplashScreen = lazy(() => import('@/screens/SplashScreen'));
 const OnboardingScreen = lazy(() => import('@/screens/OnboardingScreen'));
+const AuthLandingScreen = lazy(() => import('@/screens/AuthLandingScreen'));
 const LoginScreen = lazy(() => import('@/screens/LoginScreen'));
 const HomeScreen = lazy(() => import('@/screens/HomeScreen'));
 const CanteenDetailScreen = lazy(() => import('@/screens/CanteenDetailScreen'));
@@ -21,6 +22,8 @@ const OffersScreen = lazy(() => import('@/screens/OffersScreen'));
 const ProfileScreen = lazy(() => import('@/screens/ProfileScreen'));
 const CanteenDashboardScreen = lazy(() => import('@/screens/CanteenDashboardScreen'));
 const AdminScreen = lazy(() => import('@/screens/AdminScreen'));
+const MenuManagementScreen = lazy(() => import('@/screens/MenuManagementScreen'));
+const CanteenSettingsScreen = lazy(() => import('@/screens/CanteenSettingsScreen'));
 const NotFoundScreen = lazy(() => import('@/screens/NotFoundScreen'));
 
 // ─── Loading Fallback ──────────────────────────────────
@@ -45,11 +48,12 @@ export default function AppRoutes() {
         {/* ─── Public / Pre-Auth Routes ───────────────── */}
         <Route path={ROUTES.SPLASH} element={<SplashScreen />} />
         <Route path={ROUTES.ONBOARDING} element={<OnboardingScreen />} />
+        <Route path={ROUTES.AUTH_LANDING} element={<PublicRoute><AuthLandingScreen /></PublicRoute>} />
         <Route path={ROUTES.LOGIN} element={<PublicRoute><LoginScreen /></PublicRoute>} />
-        <Route path={ROUTES.LOGIN_CUSTOMER} element={<Navigate to={ROUTES.LOGIN} replace />} />
-        <Route path={ROUTES.LOGIN_CANTEEN} element={<Navigate to={ROUTES.LOGIN} replace />} />
+        <Route path={ROUTES.LOGIN_CUSTOMER} element={<Navigate to={ROUTES.LOGIN} state={{ role: 'student' }} replace />} />
+        <Route path={ROUTES.LOGIN_CANTEEN} element={<Navigate to={ROUTES.LOGIN} state={{ role: 'canteen_owner' }} replace />} />
         <Route path={ROUTES.LOGIN_ADMIN} element={<Navigate to={ROUTES.LOGIN} replace />} />
-        <Route path={ROUTES.ROLE_SELECTION} element={<Navigate to={ROUTES.LOGIN} replace />} />
+        <Route path={ROUTES.ROLE_SELECTION} element={<Navigate to={ROUTES.AUTH_LANDING} replace />} />
 
         {/* ─── Customer Routes (authenticated) ──────────── */}
         <Route path={ROUTES.HOME} element={<ProtectedRoute><HomeScreen /></ProtectedRoute>} />
@@ -69,6 +73,26 @@ export default function AppRoutes() {
           element={
             <RoleRoute allowedRoles={['canteen_owner', 'admin']}>
               <CanteenDashboardScreen />
+            </RoleRoute>
+          }
+        />
+
+        {/* ─── Canteen Menu Management ────────────── */}
+        <Route
+          path={ROUTES.MENU_MANAGEMENT}
+          element={
+            <RoleRoute allowedRoles={['canteen_owner', 'admin']}>
+              <MenuManagementScreen />
+            </RoleRoute>
+          }
+        />
+
+        {/* ─── Canteen Settings ──────────────────── */}
+        <Route
+          path={ROUTES.CANTEEN_SETTINGS}
+          element={
+            <RoleRoute allowedRoles={['canteen_owner', 'admin']}>
+              <CanteenSettingsScreen />
             </RoleRoute>
           }
         />
