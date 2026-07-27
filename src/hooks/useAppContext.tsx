@@ -25,14 +25,11 @@ interface AppState {
   token: string | null;
   toast: { message: string; type: 'success' | 'warning' | 'error' } | null;
   user: typeof userProfile;
-<<<<<<< Updated upstream
   groupTotal: number;
   isGroupOrder: boolean;
   groupMembers: GroupMemberData[];
-=======
   canteen: (Canteen & { _id: string }) | null;
   canteenId: string | null;
->>>>>>> Stashed changes
 }
 
 type Action =
@@ -73,14 +70,11 @@ const initialState: AppState = {
   token: storedToken,
   toast: null,
   user: { ...userProfile },
-<<<<<<< Updated upstream
   groupTotal: 0,
   isGroupOrder: false,
   groupMembers: [],
-=======
   canteen: null,
   canteenId: null,
->>>>>>> Stashed changes
 };
 
 function appReducer(state: AppState, action: Action): AppState {
@@ -152,14 +146,11 @@ function appReducer(state: AppState, action: Action): AppState {
         orders: [],
         activeTab: 'home',
         user: { ...userProfile },
-<<<<<<< Updated upstream
         groupTotal: 0,
         isGroupOrder: false,
         groupMembers: [],
-=======
         canteen: null,
         canteenId: null,
->>>>>>> Stashed changes
       };
     case 'SHOW_TOAST':
       return { ...state, toast: { message: action.message, type: action.toastType } };

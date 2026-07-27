@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  ArrowLeft, Save, Store, Phone, MapPin, Clock, Image,
-  Tags, Hash, Globe, RefreshCw, AlertTriangle,
+  ArrowLeft, Save, Store, Phone, Clock, Image,
+  Tags, AlertTriangle,
 } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
 import { updateCanteen } from '@/services/canteens';
@@ -28,16 +28,18 @@ export default function CanteenSettingsScreen() {
   const { canteen, canteenId } = state;
   const navigate = useNavigate();
 
+  const cRecord = canteen as unknown as Record<string, unknown>;
+
   const [form, setForm] = useState<FormFields>({
     name: canteen?.name || '',
-    description: (canteen as Record<string, unknown>)?.description as string || '',
-    contactPhone: (canteen as Record<string, unknown>)?.contactPhone as string || '',
-    address: (canteen as Record<string, unknown>)?.address as string || '',
-    openingHours: (canteen as Record<string, unknown>)?.openingHours as string || '',
+    description: (cRecord?.description as string) || '',
+    contactPhone: (cRecord?.contactPhone as string) || '',
+    address: (cRecord?.address as string) || '',
+    openingHours: (cRecord?.openingHours as string) || '',
     avgWaitTime: canteen?.avgWaitTime || '',
     rushLevel: canteen?.rushLevel || 'low',
     bannerImage: canteen?.bannerImage || '',
-    logoImage: (canteen as Record<string, unknown>)?.logoImage as string || '',
+    logoImage: (cRecord?.logoImage as string) || '',
     tags: (canteen?.tags || []).join(', '),
     categories: (canteen?.categories || []).filter(c => c !== 'All').join(', '),
   });

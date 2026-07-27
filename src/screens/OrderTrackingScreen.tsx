@@ -1,13 +1,7 @@
-<<<<<<< Updated upstream
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { ArrowLeft, CheckCircle2, ChefHat, PackageCheck, Phone } from 'lucide-react';
-=======
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, CheckCircle2, ChefHat, PackageCheck, Phone, XCircle } from 'lucide-react';
->>>>>>> Stashed changes
 import { useApp } from '@/hooks/useAppContext';
 import { QRCodeSVG } from 'qrcode.react';
 import { getOrderById, updateOrderStatus, cancelOrder } from '@/services/orders';
@@ -30,12 +24,8 @@ const statusMessages: Record<string, string> = {
 };
 
 export default function OrderTrackingScreen() {
-<<<<<<< Updated upstream
-  const { state, goBack, dispatch, navigate } = useApp();
-=======
   const { orderId } = useParams<{ orderId: string }>();
   const { state, goBack, dispatch, navigate, showToast } = useApp();
->>>>>>> Stashed changes
   const [status, setStatus] = useState<OrderStatus>('received');
   const [queuePosition, setQueuePosition] = useState(5);
   const [estimatedTime, setEstimatedTime] = useState('15-20 min');

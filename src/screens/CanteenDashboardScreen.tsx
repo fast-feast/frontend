@@ -67,7 +67,7 @@ export default function CanteenDashboardScreen() {
         getOrdersByCanteen(canteenId),
         getDashboardStats(canteenId),
       ]);
-      setOrders(ordersRes.data);
+      setOrders(ordersRes.data as unknown as DashboardOrderItem[]);
       setTotalOrders(statsRes.data.totalOrders);
     } catch (err) {
       setError(extractErrorMessage(err));
