@@ -35,6 +35,8 @@ export default function GeminiAssistant() {
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: 1, role: 'assistant', text: 'Hi! Tell me your budget or craving and I will find something tasty.' },
   ]);
+  const [inputHistory, setInputHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
   const nextId = useRef(2);
 
   const hidden = ['/splash', '/onboarding', '/login', '/canteen/dashboard', '/admin/dashboard'].includes(pathname);
@@ -59,13 +61,32 @@ export default function GeminiAssistant() {
     const trimmed = text.trim();
     if (!trimmed || isThinking) return;
 
+    if (trimmed.toLowerCase() === 'cls' || trimmed.toLowerCase() === '/clear') {
+      setMessages([{ id: nextId.current++, role: 'assistant', text: 'Chat cleared. What can I help you find?' }]);
+      setInput('');
+      setHistoryIndex(-1);
+      return;
+    }
+
     const userMessage: ChatMessage = { id: nextId.current++, role: 'user', text: trimmed };
     setMessages((current) => [...current, userMessage]);
+    
+    setInputHistory(prev => [...prev, trimmed]);
+    setHistoryIndex(-1);
     setInput('');
     setIsThinking(true);
 
     try {
-      const response = await post<{ text: string, items?: ChatItem[] }>('/chat', { message: trimmed });
+      // Send up to 6 previous messages for context
+      const history = messages
+        .filter(m => m.id !== 1) // Skip the default greeting
+        .slice(-6)
+        .map(m => ({ role: m.role, content: m.text }));
+
+      const response = await post<{ text: string, items?: ChatItem[] }>('/chat', { 
+        message: trimmed,
+        history
+      });
       setMessages((current) => [
         ...current, 
         { 
@@ -92,6 +113,29 @@ export default function GeminiAssistant() {
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     void sendMessage(input);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (inputHistory.length > 0) {
+        const newIndex = historyIndex === -1 ? inputHistory.length - 1 : Math.max(0, historyIndex - 1);
+        setHistoryIndex(newIndex);
+        setInput(inputHistory[newIndex]);
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (historyIndex !== -1) {
+        const newIndex = historyIndex + 1;
+        if (newIndex >= inputHistory.length) {
+          setHistoryIndex(-1);
+          setInput('');
+        } else {
+          setHistoryIndex(newIndex);
+          setInput(inputHistory[newIndex]);
+        }
+      }
+    }
   };
 
   return (
@@ -188,6 +232,7 @@ export default function GeminiAssistant() {
               <input
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
+                onKeyDown={handleKeyDown}
                 placeholder="Ask about food..."
                 aria-label="Message smart food assistant"
                 className="min-w-0 flex-1 h-11 rounded-xl border border-white/[0.08] bg-[#140D10] px-3 text-sm text-white placeholder:text-[#887A74] outline-none focus:border-[#FF7043]/60"
