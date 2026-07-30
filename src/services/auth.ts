@@ -1,5 +1,5 @@
 import { get, post, patch } from './api';
-import type { UserProfile } from '@/types';
+import type { CanteenWithId, UserProfile } from '@/types';
 
 export interface LoginRequest {
   email: string;
@@ -33,6 +33,11 @@ export interface OtpResponse {
   expiresIn: number;
 }
 
+export interface MeResponse {
+  user: AuthResponse['user'];
+  canteen?: CanteenWithId | null;
+}
+
 // ─── API Calls ─────────────────────────────────────────
 
 export function register(data: RegisterRequest) {
@@ -52,7 +57,7 @@ export function verifyOtp(data: VerifyOtpRequest) {
 }
 
 export function getMe() {
-  return get<{ user: AuthResponse['user']; canteen?: Record<string, unknown> | null }>('/auth/me');
+  return get<MeResponse>('/auth/me');
 }
 
 export function updateProfile(data: Partial<{ name: string; phone: string }>) {

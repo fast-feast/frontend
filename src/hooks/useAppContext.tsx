@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { TabName, CartItem, Order, MenuItem, ScreenName, Canteen } from '@/types';
+import type { TabName, CartItem, Order, MenuItem, ScreenName, CanteenWithId } from '@/types';
 import { userProfile } from '@/data/mockData';
 import { getStoredToken, removeToken, storeToken } from '@/services/api';
 import { getMe } from '@/services/auth';
@@ -30,7 +30,7 @@ interface AppState {
   groupTotal: number;
   isGroupOrder: boolean;
   groupMembers: GroupMemberData[];
-  canteen: (Canteen & { _id: string }) | null;
+  canteen: CanteenWithId | null;
   canteenId: string | null;
 }
 
@@ -44,7 +44,7 @@ type Action =
   | { type: 'SET_ACTIVE_ORDER'; orderId: string; token: string }
   | { type: 'COMPLETE_ONBOARDING' }
   | { type: 'SET_TOKEN'; token: string | null }
-  | { type: 'LOGIN'; name: string; phone: string; email: string; role?: 'user' | 'canteen_owner' | 'admin'; canteen?: Record<string, unknown> | null }
+  | { type: 'LOGIN'; name: string; phone: string; email: string; role?: 'user' | 'canteen_owner' | 'admin'; canteen?: CanteenWithId | null }
   | { type: 'LOGOUT' }
   | { type: 'SHOW_TOAST'; message: string; toastType: 'success' | 'warning' | 'error' }
   | { type: 'HIDE_TOAST' }
@@ -58,7 +58,7 @@ type Action =
   | { type: 'SET_GROUP_DATA'; total: number; members: GroupMemberData[] }
   | { type: 'CLEAR_GROUP_DATA' }
   | { type: 'RESTORE_AUTH' }
-  | { type: 'SET_CANTEEN'; canteen: (Canteen & { _id: string }) | null };
+  | { type: 'SET_CANTEEN'; canteen: CanteenWithId | null };
 
 /** Decode the JWT payload to extract the user role without a library.
  *  Also checks the `exp` claim so an expired token is treated as unauthenticated
@@ -170,8 +170,8 @@ function appReducer(state: AppState, action: Action): AppState {
           email: action.email,
           role: action.role || 'user',
         },
-        canteen: (action.canteen as AppState['canteen']) || null,
-        canteenId: ((action.canteen as Record<string, unknown>)?._id as string) || null,
+        canteen: action.canteen ?? null,
+        canteenId: action.canteen?._id ?? null,
       };
     case 'LOGOUT':
       return {
@@ -242,7 +242,7 @@ interface AppContextType {
   cartTotal: number;
   cartCount: number;
   /** Perform a full login: store token, navigate to role-specific dashboard */
-  loginWithToken: (token: string, user: { name: string; phone: string; email: string; role?: 'user' | 'canteen_owner' | 'admin' }, canteen?: Record<string, unknown> | null) => void;
+  loginWithToken: (token: string, user: { name: string; phone: string; email: string; role?: 'user' | 'canteen_owner' | 'admin' }, canteen?: CanteenWithId | null) => void;
   /** Clear all auth state and navigate to role selection */
   logout: () => void;
 }
@@ -320,7 +320,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       email: string;
       role?: 'user' | 'canteen_owner' | 'admin';
     },
-    canteen?: Record<string, unknown> | null
+    canteen?: CanteenWithId | null
   ) => {
     storeToken(token);
 
@@ -386,7 +386,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         });
 
         if (canteen) {
-          dispatch({ type: 'SET_CANTEEN', canteen: canteen as (Canteen & { _id: string }) | null });
+          dispatch({ type: 'SET_CANTEEN', canteen });
         }
       })
       .catch(() => {

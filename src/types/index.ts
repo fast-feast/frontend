@@ -16,6 +16,10 @@ export interface Canteen {
   isActive?: boolean;
 }
 
+export interface CanteenWithId extends Canteen {
+  _id: string;
+}
+
 export interface MenuItem {
   id: string;
   canteenId: string;
