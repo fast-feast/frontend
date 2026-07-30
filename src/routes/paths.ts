@@ -5,14 +5,10 @@ import type { ScreenName } from '@/types';
  * These are the canonical paths used throughout the app.
  */
 export const ROUTES = {
-  SPLASH: '/',
+  ROOT: '/',
   ONBOARDING: '/onboarding',
-  AUTH_LANDING: '/auth',
-  ROLE_SELECTION: '/role-selection',
   LOGIN: '/login',
-  LOGIN_CUSTOMER: '/login/customer',
-  LOGIN_CANTEEN: '/login/canteen',
-  LOGIN_ADMIN: '/login/admin',
+  LOGIN_CANTEEN: '/canteen/login',
   HOME: '/home',
   CANTEEN_DETAIL: '/canteen/:canteenId',
   CART: '/cart',
@@ -35,9 +31,8 @@ export const ROUTES = {
  * that call navigate('home') still work after the React Router migration.
  */
 export const screenToPath: Record<ScreenName, string> = {
-  splash: ROUTES.SPLASH,
+  splash: ROUTES.ROOT,
   onboarding: ROUTES.ONBOARDING,
-  authLanding: ROUTES.AUTH_LANDING,
   login: ROUTES.LOGIN,
   home: ROUTES.HOME,
   canteenDetail: ROUTES.CANTEEN_DETAIL,

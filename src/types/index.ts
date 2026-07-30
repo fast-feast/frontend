@@ -77,19 +77,8 @@ export interface UserProfile {
   role?: 'user' | 'canteen_owner' | 'admin';
 }
 
-export interface DashboardOrder {
-  id: string;
-  token: string;
-  items: { name: string; qty: number }[];
-  status: 'new' | 'preparing' | 'ready';
-  timeAgo: string;
-  total: number;
-  notes?: string;
-  orderType: 'regular' | 'group';
-}
-
 export type ScreenName = 
-  | 'splash' | 'onboarding' | 'authLanding' | 'login' | 'home' | 'canteenDetail' | 'cart' 
+  | 'splash' | 'onboarding' | 'login' | 'home' | 'canteenDetail' | 'cart' 
   | 'payment' | 'orderSuccess' | 'orderTracking' | 'orders' 
   | 'groupOrder' | 'offers' | 'profile' | 'canteenDashboard' | 'menuManagement' | 'canteenSettings' | 'admin';
 

@@ -1,4 +1,4 @@
-import type { Canteen, MenuItem, Offer, UserProfile, Order, DashboardOrder } from '@/types';
+import type { Canteen, MenuItem, Offer, UserProfile, Order } from '@/types';
 import masalaDosaImg from '../assets/masala-dosa.png';
 import chocolateCroissantImg from '../assets/chocolate-croissant.png';
 import chickenKathiRollImg from '../assets/chicken-kathi-roll.png';
@@ -145,15 +145,6 @@ export const pastOrders: Order[] = [
   },
 ];
 
-export const dashboardOrders: DashboardOrder[] = [
-  { id: 'do1', token: 'A-042', items: [{ name: 'Cheese Burger', qty: 2 }, { name: 'Fries', qty: 1 }], status: 'new', timeAgo: '2 min ago', total: 300, notes: 'Extra spicy', orderType: 'regular' },
-  { id: 'do2', token: 'A-041', items: [{ name: 'Chicken Biryani', qty: 1 }, { name: 'Cold Coffee', qty: 2 }], status: 'new', timeAgo: '5 min ago', total: 310, orderType: 'regular' },
-  { id: 'do3', token: 'A-040', items: [{ name: 'Margherita Pizza', qty: 1 }], status: 'new', timeAgo: '8 min ago', total: 180, orderType: 'group' },
-  { id: 'do4', token: 'A-039', items: [{ name: 'Veg Samosa', qty: 4 }, { name: 'Cold Coffee', qty: 2 }], status: 'preparing', timeAgo: '10 min ago', total: 220, orderType: 'regular' },
-  { id: 'do5', token: 'A-037', items: [{ name: 'Burger Combo', qty: 3 }], status: 'preparing', timeAgo: '15 min ago', total: 597, orderType: 'group' },
-  { id: 'do6', token: 'A-036', items: [{ name: 'Chicken Sandwich', qty: 1 }, { name: 'Fries', qty: 1 }], status: 'ready', timeAgo: '18 min ago', total: 160, orderType: 'regular' },
-  { id: 'do7', token: 'A-035', items: [{ name: 'Chocolate Brownie', qty: 2 }], status: 'ready', timeAgo: '20 min ago', total: 180, orderType: 'regular' },
-];
 
 export const groupParticipants = [
   { id: 'p1', name: 'You', avatar: 'Y', color: 'from-orange-500 to-red-500', isHost: true },
@@ -168,21 +159,4 @@ export const suggestedCombos = [
   { id: 'sc3', name: 'Night Cravings', items: ['Maggi Noodles', 'Chocolate Shake'], price: 99, originalPrice: 110, savings: 11 },
 ];
 
-export const adminStats = {
-  totalOrders: 1247,
-  revenue: 48350,
-  activeCanteens: 5,
-  totalUsers: 523,
-  weeklyRevenue: [4200, 5100, 4800, 6200, 7100, 8500, 8400],
-  orderTrend: '+12%',
-  revenueTrend: '+8%',
-  userTrend: '+23',
-};
 
-export const recentActivity = [
-  { icon: 'store', text: 'New canteen "South Square" registered', time: '2 min ago', color: 'green' },
-  { icon: 'tag', text: 'Offer "Burger Deal" claimed 45 times', time: '15 min ago', color: 'orange' },
-  { icon: 'users', text: 'User #412 completed registration', time: '1 hour ago', color: 'blue' },
-  { icon: 'dollar', text: 'Order #A-152 was refunded (₹180)', time: '2 hours ago', color: 'red' },
-  { icon: 'chart', text: 'Daily revenue target achieved (₹6,200)', time: '3 hours ago', color: 'green' },
-];

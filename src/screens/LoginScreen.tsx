@@ -14,16 +14,12 @@ import { ROUTES } from '@/routes/paths';
 type LoginMethod = 'email' | 'otp';
 type LoginRole = 'student' | 'canteen_owner';
 
-interface LocationState {
-  role?: LoginRole;
-}
-
 export default function LoginScreen() {
   const { loginWithToken, showToast } = useApp();
   const location = useLocation();
   const navigate = useNavigate();
-  const locationState = location.state as LocationState | null;
-  const preselectedRole = locationState?.role;
+  const isCanteenRoute = location.pathname === ROUTES.LOGIN_CANTEEN;
+  const preselectedRole: LoginRole | undefined = isCanteenRoute ? 'canteen_owner' : 'student';
 
   const [loginMethod, setLoginMethod] = useState<LoginMethod>('otp');
 
@@ -120,7 +116,7 @@ export default function LoginScreen() {
           <motion.button
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}
-            onClick={() => navigate(ROUTES.AUTH_LANDING, { replace: true })}
+            onClick={() => navigate(ROUTES.LOGIN, { replace: true })}
             className="self-start mb-4 text-xs text-[#6B6B6B] hover:text-white transition-colors flex items-center gap-1.5"
           >
             <ArrowRight size={14} className="rotate-180" />
@@ -141,7 +137,7 @@ export default function LoginScreen() {
           </div>
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white leading-tight">
             {preselectedRole === 'student' && (
-              <>Student <span className="text-[#FF6B35]">Login</span></>
+              <><span className="text-[#FF6B35]">Login</span></>
             )}
             {preselectedRole === 'canteen_owner' && (
               <>Canteen <span className="text-[#E83F4D]">Owner Login</span></>

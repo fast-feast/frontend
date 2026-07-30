@@ -6,9 +6,7 @@ import { ProtectedRoute, PublicRoute, RoleRoute } from '@/guards/ProtectedRoute'
 
 // ─── Lazy-loaded screens ───────────────────────────────
 
-const SplashScreen = lazy(() => import('@/screens/SplashScreen'));
 const OnboardingScreen = lazy(() => import('@/screens/OnboardingScreen'));
-const AuthLandingScreen = lazy(() => import('@/screens/AuthLandingScreen'));
 const LoginScreen = lazy(() => import('@/screens/LoginScreen'));
 const HomeScreen = lazy(() => import('@/screens/HomeScreen'));
 const CanteenDetailScreen = lazy(() => import('@/screens/CanteenDetailScreen'));
@@ -45,29 +43,16 @@ export default function AppRoutes() {
   return (
     <Suspense fallback={<RouteFallback />}>
       <Routes>
-        {/* ─── Public / Pre-Auth Routes ───────────────── */}
-        <Route path={ROUTES.SPLASH} element={<SplashScreen />} />
-        <Route path={ROUTES.ONBOARDING} element={<OnboardingScreen />} />
-        <Route path={ROUTES.AUTH_LANDING} element={<PublicRoute><AuthLandingScreen /></PublicRoute>} />
-        <Route path={ROUTES.LOGIN} element={<PublicRoute><LoginScreen /></PublicRoute>} />
-        <Route path={ROUTES.LOGIN_CUSTOMER} element={<Navigate to={ROUTES.LOGIN} state={{ role: 'student' }} replace />} />
-        <Route path={ROUTES.LOGIN_CANTEEN} element={<Navigate to={ROUTES.LOGIN} state={{ role: 'canteen_owner' }} replace />} />
-        <Route path={ROUTES.LOGIN_ADMIN} element={<Navigate to={ROUTES.LOGIN} replace />} />
-        <Route path={ROUTES.ROLE_SELECTION} element={<Navigate to={ROUTES.AUTH_LANDING} replace />} />
+        {/* ─── Root redirects to login. PublicRoute on /login handles auth redirect. ── */}
+        <Route path={ROUTES.ROOT} element={<Navigate to={ROUTES.LOGIN} replace />} />
 
-        {/* ─── Customer Routes (authenticated) ──────────── */}
-        <Route path={ROUTES.HOME} element={<ProtectedRoute><HomeScreen /></ProtectedRoute>} />
-        <Route path={ROUTES.CANTEEN_DETAIL} element={<ProtectedRoute><CanteenDetailScreen /></ProtectedRoute>} />
-        <Route path={ROUTES.CART} element={<ProtectedRoute><CartScreen /></ProtectedRoute>} />
-        <Route path={ROUTES.PAYMENT} element={<ProtectedRoute><PaymentScreen /></ProtectedRoute>} />
-        <Route path={ROUTES.ORDER_SUCCESS} element={<ProtectedRoute><OrderSuccessScreen /></ProtectedRoute>} />
-        <Route path={ROUTES.ORDER_TRACKING} element={<ProtectedRoute><OrderTrackingScreen /></ProtectedRoute>} />
-        <Route path={ROUTES.ORDERS} element={<ProtectedRoute><OrdersScreen /></ProtectedRoute>} />
-        <Route path={ROUTES.GROUP_ORDER} element={<ProtectedRoute><GroupOrderScreen /></ProtectedRoute>} />
-        <Route path={ROUTES.OFFERS} element={<ProtectedRoute><OffersScreen /></ProtectedRoute>} />
-        <Route path={ROUTES.PROFILE} element={<ProtectedRoute><ProfileScreen /></ProtectedRoute>} />
+        {/* ─── Public / Pre-Auth Routes ───────────────── */}
+        <Route path={ROUTES.ONBOARDING} element={<OnboardingScreen />} />
+        <Route path={ROUTES.LOGIN} element={<PublicRoute><LoginScreen /></PublicRoute>} />
+        <Route path={ROUTES.LOGIN_CANTEEN} element={<PublicRoute><LoginScreen /></PublicRoute>} />
 
         {/* ─── Canteen Owner Routes ──────────────────── */}
+        {/* MUST come before /canteen/:canteenId to prevent parameter matching */}
         <Route
           path={ROUTES.CANTEEN_DASHBOARD}
           element={
@@ -106,6 +91,18 @@ export default function AppRoutes() {
             </RoleRoute>
           }
         />
+
+        {/* ─── Customer Routes (authenticated) ──────────── */}
+        <Route path={ROUTES.HOME} element={<ProtectedRoute><HomeScreen /></ProtectedRoute>} />
+        <Route path={ROUTES.CANTEEN_DETAIL} element={<ProtectedRoute><CanteenDetailScreen /></ProtectedRoute>} />
+        <Route path={ROUTES.CART} element={<ProtectedRoute><CartScreen /></ProtectedRoute>} />
+        <Route path={ROUTES.PAYMENT} element={<ProtectedRoute><PaymentScreen /></ProtectedRoute>} />
+        <Route path={ROUTES.ORDER_SUCCESS} element={<ProtectedRoute><OrderSuccessScreen /></ProtectedRoute>} />
+        <Route path={ROUTES.ORDER_TRACKING} element={<ProtectedRoute><OrderTrackingScreen /></ProtectedRoute>} />
+        <Route path={ROUTES.ORDERS} element={<ProtectedRoute><OrdersScreen /></ProtectedRoute>} />
+        <Route path={ROUTES.GROUP_ORDER} element={<ProtectedRoute><GroupOrderScreen /></ProtectedRoute>} />
+        <Route path={ROUTES.OFFERS} element={<ProtectedRoute><OffersScreen /></ProtectedRoute>} />
+        <Route path={ROUTES.PROFILE} element={<ProtectedRoute><ProfileScreen /></ProtectedRoute>} />
 
         {/* ─── 404 Catch-all ────────────────────────── */}
         <Route path="*" element={<NotFoundScreen />} />

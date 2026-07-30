@@ -44,13 +44,13 @@ export default function OnboardingScreen() {
       goTo(current + 1);
     } else {
       dispatch({ type: 'COMPLETE_ONBOARDING' });
-      navigate('/role-selection');
+      navigate('/login');
     }
   };
 
   const skip = () => {
     dispatch({ type: 'COMPLETE_ONBOARDING' });
-    navigate('/role-selection');
+    navigate('/login');
   };
 
   const slide = slides[current];

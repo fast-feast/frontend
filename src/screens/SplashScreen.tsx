@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/hooks/useAppContext';
 import { UtensilsCrossed } from 'lucide-react';
-import { getMe } from '@/services/auth';
+import { ROUTES } from '@/routes/paths';
 
 const splashStyles = `
 @keyframes splash-fade-in {
@@ -30,32 +30,13 @@ const splashStyles = `
 const EMOJIS = ['🍔', '🍕', '☕', '🍩'];
 
 export default function SplashScreen() {
-  const { state, loginWithToken } = useApp();
+  const { state } = useApp();
   const navigate = useNavigate();
-  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    async function checkAuth() {
-      if (state.token) {
-        try {
-          const res = await getMe();
-          const { user, canteen } = res.data;
-          loginWithToken(state.token, {
-            name: user.name,
-            phone: user.phone,
-            email: user.email,
-          }, canteen);
-        } catch {
-          // Token invalid, stay logged out
-        }
-      }
-      setAuthChecked(true);
-    }
-    checkAuth();
-  }, []);
+    // Wait for the single auth bootstrap (AppProvider) to complete
+    if (state.isAuthLoading) return;
 
-  useEffect(() => {
-    if (!authChecked) return;
     const timer = setTimeout(() => {
       if (state.isOnboarded) {
         if (state.isLoggedIn) {
@@ -64,14 +45,14 @@ export default function SplashScreen() {
           else if (role === 'canteen_owner') navigate('/canteen/dashboard', { replace: true });
           else navigate('/home', { replace: true });
         } else {
-          navigate('/auth', { replace: true });
+          navigate(ROUTES.LOGIN, { replace: true });
         }
       } else {
         navigate('/onboarding', { replace: true });
       }
     }, 2000);
     return () => clearTimeout(timer);
-  }, [authChecked, state.isOnboarded, state.isLoggedIn, state.user.role, navigate]);
+  }, [state.isAuthLoading, state.isOnboarded, state.isLoggedIn, state.user.role, navigate]);
 
   return (
     <div className="screen-surface h-full flex flex-col items-center justify-center relative overflow-hidden">

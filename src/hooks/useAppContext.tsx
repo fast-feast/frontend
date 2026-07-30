@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { TabName, CartItem, Order, MenuItem, ScreenName, Canteen } from '@/types';
 import { userProfile } from '@/data/mockData';
 import { getStoredToken, removeToken, storeToken } from '@/services/api';
+import { getMe } from '@/services/auth';
 import { buildPath, screenToPath } from '@/routes/paths';
 
 interface GroupMemberData {
@@ -22,6 +23,7 @@ interface AppState {
   tokenNumber: string;
   isOnboarded: boolean;
   isLoggedIn: boolean;
+  isAuthLoading: boolean;
   token: string | null;
   toast: { message: string; type: 'success' | 'warning' | 'error' } | null;
   user: typeof userProfile;
@@ -54,9 +56,44 @@ type Action =
   | { type: 'SET_USER'; user: typeof userProfile }
   | { type: 'SET_GROUP_TOTAL'; total: number }
   | { type: 'SET_GROUP_DATA'; total: number; members: GroupMemberData[] }
-  | { type: 'CLEAR_GROUP_DATA' };
+  | { type: 'CLEAR_GROUP_DATA' }
+  | { type: 'RESTORE_AUTH' }
+  | { type: 'SET_CANTEEN'; canteen: (Canteen & { _id: string }) | null };
+
+/** Decode the JWT payload to extract the user role without a library.
+ *  Also checks the `exp` claim so an expired token is treated as unauthenticated
+ *  rather than briefly restoring a stale role. */
+function decodeTokenRole(token: string): 'user' | 'canteen_owner' | 'admin' {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+
+    // If the token has an expiration claim and it's in the past, clear it immediately
+    // so initialState does NOT set isLoggedIn=true for a token that cannot be validated.
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      removeToken();
+      return 'user';
+    }
+
+    if (payload.role && ['user', 'canteen_owner', 'admin'].includes(payload.role)) {
+      return payload.role;
+    }
+  } catch {
+    // Invalid token — default to 'user'
+  }
+  return 'user';
+}
 
 const storedToken = getStoredToken();
+
+/** Derive the initial role directly from the JWT, not from static mock data.
+ *  NOTE: decodeTokenRole may call removeToken() for expired tokens,
+ *  so we must re-check localStorage after calling it. */
+const initialRole = storedToken ? decodeTokenRole(storedToken) : 'user';
+
+// Re-check token presence AFTER decodeTokenRole, which may have cleared an expired token.
+// This ensures isLoggedIn/isAuthLoading are NOT true when the token was removed.
+const tokenAfterDecode = getStoredToken();
+const hasValidToken = !!tokenAfterDecode;
 
 const initialState: AppState = {
   activeTab: 'home',
@@ -66,10 +103,11 @@ const initialState: AppState = {
   activeOrderId: null,
   tokenNumber: '',
   isOnboarded: false,
-  isLoggedIn: !!storedToken,
-  token: storedToken,
+  isLoggedIn: hasValidToken,
+  isAuthLoading: hasValidToken,
+  token: tokenAfterDecode,
   toast: null,
-  user: { ...userProfile },
+  user: { ...userProfile, role: initialRole },
   groupTotal: 0,
   isGroupOrder: false,
   groupMembers: [],
@@ -179,6 +217,14 @@ function appReducer(state: AppState, action: Action): AppState {
       return { ...state, groupTotal: 0, isGroupOrder: false, groupMembers: [] };
     case 'SET_USER':
       return { ...state, user: action.user };
+    case 'RESTORE_AUTH':
+      return { ...state, isAuthLoading: false };
+    case 'SET_CANTEEN':
+      return {
+        ...state,
+        canteen: action.canteen,
+        canteenId: action.canteen?._id || null,
+      };
     default:
       return state;
   }
@@ -289,6 +335,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       canteen,
     });
 
+    dispatch({ type: 'RESTORE_AUTH' });
+
     const role = user.role;
 
     if (role === 'admin') {
@@ -304,7 +352,66 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(() => {
     removeToken();
     dispatch({ type: 'LOGOUT' });
+    dispatch({ type: 'RESTORE_AUTH' });
     routerNavigate('/login', { replace: true });
+  }, [routerNavigate]);
+
+  // ─── Auth Restoration ─────────────────────────────
+  // Runs once on mount to validate the stored token and hydrate
+  // the full user profile (name, phone, email, role, canteen).
+  // This is the SINGLE auth bootstrap for the entire application.
+
+  useEffect(() => {
+    if (!hasValidToken) {
+      dispatch({ type: 'RESTORE_AUTH' });
+      return;
+    }
+
+    getMe()
+      .then((res) => {
+        const { user: apiUser, canteen } = res.data;
+
+        dispatch({
+          type: 'SET_USER',
+          user: {
+            name: apiUser.name ?? '',
+            phone: apiUser.phone ?? '',
+            email: apiUser.email ?? '',
+            walletBalance: apiUser.walletBalance ?? 0,
+            streakDays: apiUser.streakDays ?? 0,
+            totalOrders: apiUser.totalOrders ?? 0,
+            totalSaved: apiUser.totalSaved ?? 0,
+            role: apiUser.role ?? 'user',
+          },
+        });
+
+        if (canteen) {
+          dispatch({ type: 'SET_CANTEEN', canteen: canteen as (Canteen & { _id: string }) | null });
+        }
+      })
+      .catch(() => {
+        removeToken();
+        dispatch({ type: 'LOGOUT' });
+      })
+      .finally(() => {
+        dispatch({ type: 'RESTORE_AUTH' });
+      });
+  }, []);
+
+  // ─── Global 401 (Unauthorized) Handler ───────────────
+  // When the Axios interceptor detects a 401, this listener
+  // forces a clean logout.
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      removeToken();
+      dispatch({ type: 'LOGOUT' });
+      dispatch({ type: 'RESTORE_AUTH' });
+      routerNavigate('/login', { replace: true });
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
   }, [routerNavigate]);
 
   const cartTotal = state.cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
