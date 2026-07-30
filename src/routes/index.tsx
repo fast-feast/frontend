@@ -23,6 +23,7 @@ const CanteenDashboardScreen = lazy(() => import('@/screens/CanteenDashboardScre
 const AdminScreen = lazy(() => import('@/screens/AdminScreen'));
 const MenuManagementScreen = lazy(() => import('@/screens/MenuManagementScreen'));
 const CanteenSettingsScreen = lazy(() => import('@/screens/CanteenSettingsScreen'));
+const AllCanteensScreen = lazy(() => import('@/screens/AllCanteensScreen'));
 const NotFoundScreen = lazy(() => import('@/screens/NotFoundScreen'));
 
 // ─── Loading Fallback ──────────────────────────────────
@@ -69,6 +70,7 @@ const CONTENT_ROUTES: RouteItem[] = [
 
   // ─── Customer Routes (authenticated) ────────────
   { path: ROUTES.HOME, element: <ProtectedRoute><HomeScreen /></ProtectedRoute> },
+  { path: ROUTES.ALL_CANTEENS, element: <ProtectedRoute><AllCanteensScreen /></ProtectedRoute> },
   { path: ROUTES.CANTEEN_DETAIL, element: <ProtectedRoute><CanteenDetailScreen /></ProtectedRoute> },
   { path: ROUTES.CART, element: <ProtectedRoute><CartScreen /></ProtectedRoute> },
   { path: ROUTES.PAYMENT, element: <ProtectedRoute><PaymentScreen /></ProtectedRoute> },

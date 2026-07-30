@@ -178,12 +178,7 @@ export default function HomeScreen() {
   const canteenCarouselRef = useRef<HTMLDivElement>(null);
 
   const handleSeeAllCanteens = () => {
-    if (canteenCarouselRef.current) {
-      canteenCarouselRef.current.scrollBy({
-        left: canteenCarouselRef.current.scrollWidth,
-        behavior: 'smooth',
-      });
-    }
+    navigate('allCanteens', 'push');
   };
 
   const handleCanteenTap = (id: string) => {

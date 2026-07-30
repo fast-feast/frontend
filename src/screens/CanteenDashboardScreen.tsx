@@ -6,7 +6,7 @@ import { useApp } from '@/hooks/useAppContext';
 import { getOrdersByCanteen, updateOrderStatus, type OrderDTO } from '@/services/orders';
 import { getDashboardStats, updateCanteen } from '@/services/canteens';
 import { extractErrorMessage } from '@/services/api';
-import { LoadingAnimation, ListItemSkeleton } from '@/components/ui/loading-animation';
+import { LoadingAnimation } from '@/components/ui/loading-animation';
 
 type OrderStatus = 'received' | 'preparing' | 'ready' | 'cancelled';
 type DisplayStatus = 'received' | 'preparing' | 'ready' | 'all';

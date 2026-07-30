@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import { UtensilsCrossed, ChefHat, Loader2Icon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -459,35 +459,20 @@ function LoadingAnimation({
   size = "md",
   className,
 }: LoadingAnimationProps) {
-  const LoaderComponent = () => {
-    switch (variant) {
-      case "spinner":
-        return <SpinnerLoader size={size} />
-      case "dots":
-        return <DotsLoader size={size} />
-      case "bounce":
-        return <BounceLoader size={size} />
-      case "pulse":
-        return <PulseLoader size={size} />
-      case "skeleton":
-        return <SkeletonLoader count={3} />
-      case "fullscreen":
-        return <FullscreenLoader message={message} />
-      case "card":
-        return <CardSkeleton count={3} />
-      default:
-        return <SpinnerLoader size={size} />
-    }
-  }
-
+  // Fullscreen is rendered directly (handles its own full-page layout)
   if (variant === "fullscreen") {
     return <FullscreenLoader message={message} className={className} />
   }
 
   return (
     <div className={cn("flex flex-col items-center justify-center", className)}>
-      <LoaderComponent />
-      {message && variant !== "fullscreen" && (
+      {variant === "spinner" && <SpinnerLoader size={size} />}
+      {variant === "dots" && <DotsLoader size={size} />}
+      {variant === "bounce" && <BounceLoader size={size} />}
+      {variant === "pulse" && <PulseLoader size={size} />}
+      {variant === "skeleton" && <SkeletonLoader count={3} />}
+      {variant === "card" && <CardSkeleton count={3} />}
+      {message && (
         <motion.p
           className="text-xs text-[#6B6B6B] mt-3 font-medium tracking-wide"
           animate={{ opacity: [0.4, 1, 0.4] }}

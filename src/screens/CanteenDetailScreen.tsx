@@ -6,7 +6,7 @@ import { useApp } from '@/hooks/useAppContext';
 import { getCanteenWithMenu, normalizeCanteen } from '@/services/canteens';
 import { normalizeMenuItem } from '@/services/menu';
 import { getCached, setCache } from '@/services/cache';
-import { LoadingAnimation, MenuItemSkeleton } from '@/components/ui/loading-animation';
+import { MenuItemSkeleton } from '@/components/ui/loading-animation';
 import type { Canteen, MenuItem } from '@/types';
 
 export default function CanteenDetailScreen() {
@@ -25,7 +25,7 @@ export default function CanteenDetailScreen() {
     }
   }, [canteenId]);
 
-  const activeCanteenId = state.selectedCanteenId || canteenId;
+  const activeCanteenId = state.selectedCanteenId || canteenId || '';
 
   // ─── Cached Data Loading ────────────────────────────
   useEffect(() => {

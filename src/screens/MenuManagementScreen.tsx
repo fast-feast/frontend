@@ -8,7 +8,7 @@ import {
 import { useApp } from '@/hooks/useAppContext';
 import { getMenuByCanteen, createMenuItem, updateMenuItem, deleteMenuItem } from '@/services/menu';
 import { extractErrorMessage } from '@/services/api';
-import { LoadingAnimation, ListItemSkeleton, SpinnerLoader } from '@/components/ui/loading-animation';
+import { LoadingAnimation, SpinnerLoader } from '@/components/ui/loading-animation';
 import type { MenuItemDTO } from '@/services/menu';
 
 type MenuForm = {

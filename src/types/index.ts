@@ -92,7 +92,7 @@ export interface UserProfile {
 }
 
 export type ScreenName = 
-  | 'splash' | 'onboarding' | 'login' | 'home' | 'canteenDetail' | 'cart' 
+  | 'splash' | 'onboarding' | 'login' | 'home' | 'allCanteens' | 'canteenDetail' | 'cart' 
   | 'payment' | 'orderSuccess' | 'orderTracking' | 'orders' 
   | 'groupOrder' | 'offers' | 'profile' | 'canteenDashboard' | 'menuManagement' | 'canteenSettings' | 'admin';
 
