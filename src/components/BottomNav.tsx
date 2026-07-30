@@ -1,5 +1,6 @@
+import { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Home, ClipboardList, Gift, Users, Bot, X } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
 import type { TabName } from '@/types';
@@ -7,6 +8,7 @@ import type { TabName } from '@/types';
 interface BottomNavProps {
   isAIOpen: boolean;
   onToggleAI: () => void;
+  pathname: string;
 }
 
 const tabs: { key: TabName; icon: React.ElementType; label: string; path: string }[] = [
@@ -16,13 +18,12 @@ const tabs: { key: TabName; icon: React.ElementType; label: string; path: string
   { key: 'group', icon: Users, label: 'Group', path: '/group-order' },
 ];
 
-export default function BottomNav({ isAIOpen, onToggleAI }: BottomNavProps) {
+const BottomNav = memo(function BottomNav({ isAIOpen, onToggleAI, pathname }: BottomNavProps) {
   const { dispatch } = useApp();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const activeTab =
-    tabs.find((t) => location.pathname.startsWith(t.path))?.key || 'home';
+    tabs.find((t) => pathname.startsWith(t.path))?.key || 'home';
 
   const renderTab = (tab: { key: TabName; icon: React.ElementType; label: string; path: string }, index: number, offset: number) => {
     const isActive = activeTab === tab.key;
@@ -171,4 +172,6 @@ export default function BottomNav({ isAIOpen, onToggleAI }: BottomNavProps) {
       </div>
     </motion.nav>
   );
-}
+});
+
+export default BottomNav;

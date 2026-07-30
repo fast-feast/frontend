@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, ChevronDown, ChevronUp, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
 import { getOrders, normalizeOrder } from '@/services/orders';
+import { LoadingAnimation } from '@/components/ui/loading-animation';
 import type { Order } from '@/types';
 
 const statusConfig = {
@@ -122,8 +123,8 @@ export default function OrdersScreen() {
           className="px-4 md:px-6 lg:px-8 pb-6 space-y-2 max-w-3xl mx-auto"
         >
           {loading ? (
-            <div className="text-center py-12">
-              <p className="text-[#6B6B6B] text-sm">Loading orders...</p>
+            <div className="py-12">
+              <LoadingAnimation variant="spinner" message="Loading orders..." />
             </div>
           ) : displayOrders.length === 0 ? (
             <div className="text-center py-12">

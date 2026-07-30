@@ -6,6 +6,7 @@ import { useApp } from '@/hooks/useAppContext';
 import { QRCodeSVG } from 'qrcode.react';
 import { getOrderById, updateOrderStatus, cancelOrder } from '@/services/orders';
 import { extractErrorMessage } from '@/services/api';
+import { LoadingAnimation } from '@/components/ui/loading-animation';
 
 type OrderStatus = 'received' | 'preparing' | 'ready' | 'completed' | 'cancelled';
 
@@ -100,10 +101,10 @@ export default function OrderTrackingScreen() {
   // ─── Loading ──────────────────────────────────────────
   if (loading) {
     return (
-      <div className="screen-surface h-full flex flex-col items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-2 border-[#FF6B35] border-t-transparent animate-spin" />
-        <p className="text-xs text-[#6B6B6B] mt-3">Loading order...</p>
-      </div>
+      <LoadingAnimation
+        variant="fullscreen"
+        message="Loading order..."
+      />
     );
   }
 

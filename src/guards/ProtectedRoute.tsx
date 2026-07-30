@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import { useApp } from '@/hooks/useAppContext';
 import { ROUTES } from '@/routes/paths';
+import { LoadingAnimation } from '@/components/ui/loading-animation';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -9,10 +10,10 @@ interface ProtectedRouteProps {
 /** Minimal loading spinner shown while auth state is being restored. */
 function AuthLoadingSpinner() {
   return (
-    <div className="screen-surface h-full flex flex-col items-center justify-center">
-      <div className="w-10 h-10 rounded-full border-2 border-[#FF6B35] border-t-transparent animate-spin" />
-      <p className="text-xs text-[#6B6B6B] mt-3">Checking authentication...</p>
-    </div>
+    <LoadingAnimation
+      variant="fullscreen"
+      message="Checking authentication..."
+    />
   );
 }
 

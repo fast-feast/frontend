@@ -1,17 +1,21 @@
+import { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ShoppingBag } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
 
 const HIDDEN_PATHS = ['/payment', '/order-success', '/order-tracking', '/canteen/dashboard', '/admin/dashboard'];
 
-export default function StickyCartBar() {
+interface StickyCartBarProps {
+  pathname: string;
+}
+
+const StickyCartBar = memo(function StickyCartBar({ pathname }: StickyCartBarProps) {
   const { state, cartTotal, cartCount } = useApp();
   const navigate = useNavigate();
-  const location = useLocation();
 
   if (state.cart.length === 0) return null;
-  if (HIDDEN_PATHS.includes(location.pathname)) return null;
+  if (HIDDEN_PATHS.includes(pathname)) return null;
 
   return (
     <AnimatePresence>
@@ -60,4 +64,6 @@ export default function StickyCartBar() {
       </motion.div>
     </AnimatePresence>
   );
-}
+});
+
+export default StickyCartBar;

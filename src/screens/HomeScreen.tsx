@@ -1,9 +1,11 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Star, Clock, TrendingUp, Zap, ChevronRight } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
 import { getAllCanteens, normalizeCanteen } from '@/services/canteens';
 import { getTrendingItems, getFastItems, normalizeMenuItem } from '@/services/menu';
+import { getCached, setCache } from '@/services/cache';
+import { CardSkeleton } from '@/components/ui/loading-animation';
 import type { Canteen, MenuItem } from '@/types';
 
 const filters = ['All', 'Veg', 'Fast', 'Popular', 'Under ₹100', 'Beverages'];
@@ -36,7 +38,29 @@ export default function HomeScreen() {
   const [fastItems, setFastItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // ─── Cached Data Loading ────────────────────────────
+  // Cache key includes the filter to bust cache when filter changes
+  const HOME_CACHE_KEY = 'home_screen_data';
+
   useEffect(() => {
+    // 1. Try loading from cache first (instant render)
+    const cached = getCached<{
+      canteens: Canteen[];
+      trending: MenuItem[];
+      fast: MenuItem[];
+    }>(HOME_CACHE_KEY);
+
+    if (cached) {
+      setCanteens(cached.canteens);
+      setTrendingItems(cached.trending);
+      setFastItems(cached.fast);
+      setLoading(false);
+      return; // Skip fetch — data is fresh
+    }
+
+    // 2. No cache — fetch from API
+    let cancelled = false;
+
     async function loadData() {
       try {
         const [canteensRes, trendingRes, fastRes] = await Promise.all([
@@ -44,16 +68,33 @@ export default function HomeScreen() {
           getTrendingItems(5),
           getFastItems(6),
         ]);
-        setCanteens(canteensRes.data.map(normalizeCanteen));
-        setTrendingItems(trendingRes.data.map(normalizeMenuItem));
-        setFastItems(fastRes.data.map(normalizeMenuItem));
+
+        if (cancelled) return;
+
+        const data = {
+          canteens: canteensRes.data.map(normalizeCanteen),
+          trending: trendingRes.data.map(normalizeMenuItem),
+          fast: fastRes.data.map(normalizeMenuItem),
+        };
+
+        setCanteens(data.canteens);
+        setTrendingItems(data.trending);
+        setFastItems(data.fast);
+
+        // Cache for instant load on next mount
+        setCache(HOME_CACHE_KEY, data);
       } catch {
         // Fallback to empty state
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
+
     loadData();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const activeOrder = useMemo(() => {
@@ -133,6 +174,17 @@ export default function HomeScreen() {
     }
     return result;
   }, [fastItems, activeFilter, matchesFilter, matchesSearch]);
+
+  const canteenCarouselRef = useRef<HTMLDivElement>(null);
+
+  const handleSeeAllCanteens = () => {
+    if (canteenCarouselRef.current) {
+      canteenCarouselRef.current.scrollBy({
+        left: canteenCarouselRef.current.scrollWidth,
+        behavior: 'smooth',
+      });
+    }
+  };
 
   const handleCanteenTap = (id: string) => {
     dispatch({ type: 'SELECT_CANTEEN', id });
@@ -281,17 +333,17 @@ export default function HomeScreen() {
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Canteens</h2>
-            <button className="text-xs md:text-sm font-medium text-[#D94A5A] flex items-center gap-0.5">
+            <motion.button
+              whileTap={{ scale: 0.92 }}
+              onClick={handleSeeAllCanteens}
+              className="text-xs md:text-sm font-medium text-[#D94A5A] flex items-center gap-0.5 hover:text-white transition-colors"
+            >
               See All <ChevronRight size={14} />
-            </button>
+            </motion.button>
           </div>
           {loading ? (
-            <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
-              {[1, 2, 3].map((_, i) => (
-                <div key={i} className="snap-start flex-shrink-0 w-[260px] xs:w-[280px] sm:w-[300px] md:w-[320px] lg:w-[340px] h-[160px] xs:h-[180px] md:h-[200px] rounded-2xl bg-card animate-pulse" />
-              ))}
-            </div>
-          ) : filteredCanteens.length > 0 ? (              <div className="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-2">
+            <CardSkeleton count={3} />
+          ) : filteredCanteens.length > 0 ? (              <div ref={canteenCarouselRef} className="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-2">
                 {filteredCanteens.map((c, i) => (
                 <motion.button
                   key={c.id}
@@ -332,7 +384,7 @@ export default function HomeScreen() {
         </div>
       </motion.div>
 
-      {/* Trending Section - Horizontal Carousel */}
+      {/* Trending Section - Infinite Auto-Scroll Carousel */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -348,42 +400,59 @@ export default function HomeScreen() {
               <p className="text-[11px] md:text-sm text-[#D94A5A] mt-0.5">{activeFilter} picks for you</p>
             )}
           </div>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-2">
-            {filteredTrendingItems.length > 0 ? (
-              filteredTrendingItems.map((item, i) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.45 + i * 0.06 }}
-                  className="snap-start carousel-card-sm flex-shrink-0 w-[160px] xs:w-[180px] sm:w-[200px] md:w-[220px] lg:w-[240px] bg-card rounded-2xl overflow-hidden text-left cursor-default"
-                >
-                  <div className="relative">
-                    <img src={item.image} alt={item.name} className="w-full h-[100px] xs:h-[110px] md:h-[130px] lg:h-[150px] object-cover" />
-                    <div className="absolute top-2 left-2">
-                      <span className="text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-full bg-[#D94A5A]/80 text-white font-medium">
-                        Trending
-                      </span>
+          {/* Infinite marquee: duplicate items to create seamless loop */}
+          {filteredTrendingItems.length > 0 ? (
+            <div className="overflow-hidden pb-2 relative group">
+              <motion.div
+                className="flex gap-3"
+                style={{ width: 'max-content' }}
+                animate={{
+                  x: ['0%', '-50%'],
+                }}
+                transition={{
+                  duration: filteredTrendingItems.length * 3,
+                  ease: 'linear',
+                  repeat: Infinity,
+                  repeatType: 'loop',
+                }}
+              >
+                {/* Render items twice for seamless infinite scroll */}
+                {[...filteredTrendingItems, ...filteredTrendingItems].map((item, i) => (
+                  <motion.div
+                    key={`${item.id}-${i}`}
+                    className="trending-card flex-shrink-0 w-[160px] xs:w-[180px] sm:w-[200px] md:w-[220px] lg:w-[240px] bg-card rounded-2xl overflow-hidden text-left"
+                  >
+                    <div className="relative">
+                      <img src={item.image} alt={item.name} className="w-full h-[100px] xs:h-[110px] md:h-[130px] lg:h-[150px] object-cover" />
+                      <div className="absolute top-2 left-2">
+                        <span className="text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-full bg-[#D94A5A]/80 text-white font-medium">
+                          Trending
+                        </span>
+                      </div>
+
                     </div>
-                  </div>
-                  <div className="p-2.5 md:p-3">
-                    <h4 className="text-sm md:text-base font-semibold text-white truncate">{item.name}</h4>
-                    <p className="text-[9px] md:text-[10px] text-[#6B4D5A] mt-0.5 truncate">{canteens.find(c => c.id === item.canteenId)?.name}</p>
-                    <div className="flex items-center justify-between mt-1.5">
-                      <span className="text-sm md:text-base font-bold text-[#D94A5A]">₹{item.price}</span>
-                      <span className="text-[9px] md:text-[10px] text-[#6B4D5A] flex items-center gap-0.5">
-                        <Clock size={9} /> {item.prepTime}
-                      </span>
+                    <div className="p-2.5 md:p-3">
+                      <h4 className="text-sm md:text-base font-semibold text-white truncate">{item.name}</h4>
+                      <p className="text-[9px] md:text-[10px] text-[#6B4D5A] mt-0.5 truncate">{canteens.find(c => c.id === item.canteenId)?.name}</p>
+                      <div className="flex items-center justify-between mt-1.5">
+                        <span className="text-sm md:text-base font-bold text-[#D94A5A]">₹{item.price}</span>
+                        <span className="text-[9px] md:text-[10px] text-[#6B4D5A] flex items-center gap-0.5">
+                          <Clock size={9} /> {item.prepTime}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              ))
-            ) : (
-              <div className="flex items-center justify-center w-full h-[130px] rounded-2xl bg-card/50">
-                <p className="text-sm text-[#6B4D5A]">No trending items match &quot;{activeFilter}&quot;</p>
-              </div>
-            )}
-          </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+              {/* Gradient fade edges for smooth entry/exit */}
+              <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#0A0508] to-transparent pointer-events-none z-[2]" />
+              <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0A0508] to-transparent pointer-events-none z-[2]" />
+            </div>
+          ) : (
+            <div className="flex items-center justify-center w-full h-[130px] rounded-2xl bg-card/50">
+              <p className="text-sm text-[#6B4D5A]">No trending items match &quot;{activeFilter}&quot;</p>
+            </div>
+          )}
         </div>
       </motion.div>
 

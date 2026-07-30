@@ -1,4 +1,4 @@
-import type { Canteen, MenuItem, Offer, UserProfile, Order } from '@/types';
+import type { Canteen, MenuItem, Offer, UserProfile, Order, ComboItem } from '@/types';
 import masalaDosaImg from '../assets/masala-dosa.png';
 import chocolateCroissantImg from '../assets/chocolate-croissant.png';
 import chickenKathiRollImg from '../assets/chicken-kathi-roll.png';
@@ -153,10 +153,10 @@ export const groupParticipants = [
   { id: 'p4', name: 'Priya', avatar: 'P', color: 'from-purple-500 to-violet-500', isHost: false },
 ];
 
-export const suggestedCombos = [
-  { id: 'sc1', name: 'Burger Meal', items: ['Cheese Burger', 'Fries', 'Coke'], price: 199, originalPrice: 250, savings: 51 },
-  { id: 'sc2', name: 'Coffee Break', items: ['Caramel Latte', 'Chocolate Croissant'], price: 170, originalPrice: 200, savings: 30 },
-  { id: 'sc3', name: 'Night Cravings', items: ['Maggi Noodles', 'Chocolate Shake'], price: 99, originalPrice: 110, savings: 11 },
+export const suggestedCombos: ComboItem[] = [
+  { id: 'sc1', name: 'Burger Meal', items: ['Cheese Burger', 'French Fries', 'Fresh Lime Soda'], price: 199, originalPrice: 250, savings: 51, canteenId: 'c1' },
+  { id: 'sc2', name: 'Coffee Break', items: ['Caramel Latte', 'Chocolate Croissant'], price: 170, originalPrice: 200, savings: 30, canteenId: 'c3' },
+  { id: 'sc3', name: 'Night Cravings', items: ['Maggi Noodles', 'Chocolate Shake'], price: 99, originalPrice: 110, savings: 11, canteenId: 'c4' },
 ];
 
 

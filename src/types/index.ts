@@ -41,6 +41,16 @@ export interface CartItem extends MenuItem {
   spiceLevel?: 'mild' | 'medium' | 'hot';
 }
 
+export interface ComboItem {
+  id: string;
+  name: string;
+  items: string[];
+  price: number;
+  originalPrice: number;
+  savings: number;
+  canteenId: string;
+}
+
 export interface Order {
   id: string;
   token: string;

@@ -6,6 +6,7 @@ import { useApp } from '@/hooks/useAppContext';
 import { getOrdersByCanteen, updateOrderStatus, type OrderDTO } from '@/services/orders';
 import { getDashboardStats, updateCanteen } from '@/services/canteens';
 import { extractErrorMessage } from '@/services/api';
+import { LoadingAnimation, ListItemSkeleton } from '@/components/ui/loading-animation';
 
 type OrderStatus = 'received' | 'preparing' | 'ready' | 'cancelled';
 type DisplayStatus = 'received' | 'preparing' | 'ready' | 'all';
@@ -174,10 +175,10 @@ export default function CanteenDashboardScreen() {
   // ─── Loading State ─────────────────────────────────────
   if (loading && orders.length === 0) {
     return (
-      <div className="screen-surface h-full flex flex-col items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-2 border-[#FF6B35] border-t-transparent animate-spin" />
-        <p className="text-xs text-[#6B6B6B] mt-3">Loading dashboard...</p>
-      </div>
+      <LoadingAnimation
+        variant="fullscreen"
+        message="Loading dashboard..."
+      />
     );
   }
 
@@ -311,7 +312,7 @@ export default function CanteenDashboardScreen() {
       <div className="px-4 md:px-6 lg:px-8 mt-3 pb-6 space-y-2 flex-1">
         {loading && (
           <div className="flex items-center justify-center py-8">
-            <div className="w-6 h-6 rounded-full border-2 border-[#FF6B35] border-t-transparent animate-spin" />
+            <LoadingAnimation variant="dots" size="sm" />
             <span className="text-xs text-[#6B6B6B] ml-2">Updating orders...</span>
           </div>
         )}

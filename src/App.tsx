@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { memo, useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
-import { AppProvider, useApp } from '@/hooks/useAppContext';
+import { motion } from 'framer-motion';
+import { AppProvider } from '@/hooks/useAppContext';
 import BottomNav from '@/components/BottomNav';
 import Toast from '@/components/Toast';
 import StickyCartBar from '@/components/StickyCartBar';
@@ -13,60 +13,93 @@ import AppRoutes from '@/routes';
 /** Screens that should show the bottom navigation bar. */
 const TAB_ROOTS = ['/home', '/orders', '/offers', '/group-order'];
 
-const pageVariants = {
-  enter: (pathname: string) => ({
-    x: pathname === '/' ? 0 : '100%',
-    y: 0,
-    opacity: pathname === '/' ? 0 : 0.8,
-  }),
-  center: {
-    x: 0,
-    y: 0,
-    opacity: 1,
-  },
-  exit: (pathname: string) => ({
-    x: pathname === '/' ? 0 : '-30%',
-    y: 0,
-    opacity: pathname === '/' ? 0 : 0.5,
-  }),
-};
+// ─── Page Keep-Alive Cache ─────────────────────────────
+// Renders ALL visited pages simultaneously but only the current
+// page is visible. This prevents remounting when navigating back.
+// Max 5 cached pages to limit memory usage.
+
+const MAX_CACHED_PAGES = 5;
 
 function AnimatedOutlet() {
   const location = useLocation();
+  const pathname = location.pathname;
+  const prevPathname = useRef(pathname);
+
+  // Track visited page paths — order=most-recent-last
+  const [cachedPaths, setCachedPaths] = useState<string[]>(() => [pathname]);
+
+  useEffect(() => {
+    if (pathname === prevPathname.current) return;
+    prevPathname.current = pathname;
+
+    setCachedPaths((prev) => {
+      // Remove duplicate if exists, then add to end
+      const next = prev.filter((p) => p !== pathname);
+      next.push(pathname);
+      // Keep only the last MAX_CACHED_PAGES
+      return next.length > MAX_CACHED_PAGES
+        ? next.slice(next.length - MAX_CACHED_PAGES)
+        : next;
+    });
+  }, [pathname]);
 
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={location.pathname}
-        custom={location.pathname}
-        variants={pageVariants}
-        initial="enter"
-        animate="center"
-        exit="exit"
-        transition={{
-          x: { type: 'tween', duration: 0.3, ease: [0.65, 0, 0.35, 1] },
-          y: { type: 'spring', stiffness: 300, damping: 30 },
-          opacity: { duration: 0.2 },
-        }}
-        className="h-full w-full responsive-screen"
-      >
-        <AppRoutes />
-      </motion.div>
-    </AnimatePresence>
+    <div className="relative h-full w-full overflow-hidden">
+      {cachedPaths.map((path) => {
+        const isActive = path === pathname;
+        return (
+          <motion.div
+            key={path}
+            className="absolute inset-0 overflow-y-auto no-scrollbar"
+            initial={false}
+            animate={{
+              opacity: isActive ? 1 : 0,
+              x: isActive ? 0 : '-4%',
+              pointerEvents: isActive ? 'auto' : 'none' as const,
+            }}
+            transition={{
+              opacity: { duration: 0.25, ease: 'easeInOut' },
+              x: { type: 'tween', duration: 0.3, ease: [0.65, 0, 0.35, 1] },
+            }}
+            style={{ zIndex: isActive ? 1 : 0 }}
+          >
+            <AppRoutes location={path} />
+          </motion.div>
+        );
+      })}
+    </div>
   );
 }
 
+// ─── Memoized static utility components ─────────────────
+
+/** Sticky cart bar wrapper — only renders when pathname allows cart visibility. */
+const CartBarWrapper = memo(function CartBarWrapper({ pathname }: { pathname: string }) {
+  const show = TAB_ROOTS.includes(pathname) && pathname !== '/cart';
+  if (!show) return null;
+  return <StickyCartBar pathname={pathname} />;
+});
+
+/** Bottom nav wrapper — only renders on tab root pages. */
+function NavBarRenderer({ pathname, isAIOpen, onToggleAI }: {
+  pathname: string;
+  isAIOpen: boolean;
+  onToggleAI: () => void;
+}): ReactNode {
+  if (!TAB_ROOTS.includes(pathname)) return null;
+  return <BottomNav pathname={pathname} isAIOpen={isAIOpen} onToggleAI={onToggleAI} />;
+}
+const NavBarWrapper = memo(NavBarRenderer);
+
+// ─── App Shell ─────────────────────────────────────────
+
 function AppShell() {
-  useApp();
   const location = useLocation();
   const pathname = location.pathname;
   const [isAIOpen, setIsAIOpen] = useState(false);
 
-  const showNav = TAB_ROOTS.includes(pathname);
-  const showCartBar = TAB_ROOTS.includes(pathname) && pathname !== '/cart';
-
-  const handleToggleAI = () => setIsAIOpen((v) => !v);
-  const handleCloseAI = () => setIsAIOpen(false);
+  const handleToggleAI = useCallback(() => setIsAIOpen((v) => !v), []);
+  const handleCloseAI = useCallback(() => setIsAIOpen(false), []);
 
   return (
     <div className="min-h-[100dvh] w-full bg-[#100B0E] flex justify-center items-stretch p-0 md:p-4">
@@ -78,18 +111,18 @@ function AppShell() {
             '0 0 0 1px rgba(232, 63, 77, 0.08), 0 0 60px rgba(232, 63, 77, 0.04), 0 25px 80px rgba(0, 0, 0, 0.5)',
         }}
       >
-        {/* Main content area with route transitions */}
+        {/* Main content area — pages stay alive via AnimatedOutlet cache */}
         <main className="flex-1 overflow-hidden relative">
           <AnimatedOutlet />
         </main>
 
-        {/* Sticky Cart Bar */}
-        {showCartBar && <StickyCartBar />}
+        {/* Sticky Cart Bar — memoized, only renders on valid paths */}
+        <CartBarWrapper pathname={pathname} />
 
-        {/* Bottom Navigation */}
-        {showNav && <BottomNav isAIOpen={isAIOpen} onToggleAI={handleToggleAI} />}
+        {/* Bottom Navigation — memoized, only renders on tab roots */}
+        <NavBarWrapper pathname={pathname} isAIOpen={isAIOpen} onToggleAI={handleToggleAI} />
 
-        {/* Toast Notifications */}
+        {/* Toast Notifications — lightweight, always rendered */}
         <Toast />
 
         {/* PWA Install Prompt */}
@@ -99,7 +132,7 @@ function AppShell() {
         <UpdatePrompt />
 
         {/* Gemini Food Assistant */}
-        <GeminiAssistant isOpen={isAIOpen} onClose={handleCloseAI} />
+        <GeminiAssistant pathname={pathname} isOpen={isAIOpen} onClose={handleCloseAI} />
       </div>
     </div>
   );

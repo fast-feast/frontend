@@ -5,6 +5,8 @@ import { ArrowLeft, Star, Clock, Plus, Minus, Search, Leaf, ShoppingBag, Chevron
 import { useApp } from '@/hooks/useAppContext';
 import { getCanteenWithMenu, normalizeCanteen } from '@/services/canteens';
 import { normalizeMenuItem } from '@/services/menu';
+import { getCached, setCache } from '@/services/cache';
+import { LoadingAnimation, MenuItemSkeleton } from '@/components/ui/loading-animation';
 import type { Canteen, MenuItem } from '@/types';
 
 export default function CanteenDetailScreen() {
@@ -25,23 +27,54 @@ export default function CanteenDetailScreen() {
 
   const activeCanteenId = state.selectedCanteenId || canteenId;
 
+  // ─── Cached Data Loading ────────────────────────────
   useEffect(() => {
+    if (!activeCanteenId) {
+      setLoading(false);
+      return;
+    }
+
+    const cacheKey = `canteen_detail:${activeCanteenId}`;
+
+    // 1. Try cache first (instant)
+    const cached = getCached<{ canteen: Canteen; menuItems: MenuItem[] }>(cacheKey);
+    if (cached) {
+      setCanteen(cached.canteen);
+      setMenuItems(cached.menuItems);
+      setLoading(false);
+      return;
+    }
+
+    // 2. No cache — fetch fresh
+    let cancelled = false;
+
     async function loadData() {
-      if (!activeCanteenId) {
-        setLoading(false);
-        return;
-      }
       try {
         const res = await getCanteenWithMenu(activeCanteenId);
-        setCanteen(normalizeCanteen(res.data.canteen));
-        setMenuItems(res.data.menuItems.map(normalizeMenuItem));
+        if (cancelled) return;
+
+        const data = {
+          canteen: normalizeCanteen(res.data.canteen),
+          menuItems: res.data.menuItems.map(normalizeMenuItem),
+        };
+
+        setCanteen(data.canteen);
+        setMenuItems(data.menuItems);
+
+        // Cache for instant reload on back-navigation
+        setCache(cacheKey, data);
       } catch {
         // Silent fallback
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
+
     loadData();
+
+    return () => {
+      cancelled = true;
+    };
   }, [activeCanteenId]);
 
   const filteredItems = useMemo(() => {
@@ -82,8 +115,25 @@ export default function CanteenDetailScreen() {
 
   if (loading) {
     return (
-      <div className="screen-surface h-full flex items-center justify-center">
-        <div className="animate-pulse text-[#6B4D5A]">Loading menu...</div>
+      <div className="screen-surface h-full flex flex-col overflow-y-auto no-scrollbar">
+        {/* Skeleton header banner */}
+        <div className="h-[160px] xs:h-[180px] sm:h-[200px] md:h-[240px] lg:h-[280px] bg-card relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0508] via-[#0A0508]/30 to-transparent" />
+        </div>
+        {/* Skeleton search bar */}
+        <div className="px-4 md:px-6 lg:px-8 pt-3">
+          <div className="max-w-5xl mx-auto h-11 rounded-full bg-card" />
+        </div>
+        {/* Skeleton category tabs */}
+        <div className="px-4 md:px-6 lg:px-8 pt-3 flex gap-2">
+          {['All', 'Meals', 'Snacks'].map((_, i) => (
+            <div key={i} className="h-7 w-20 rounded-full bg-card" />
+          ))}
+        </div>
+        {/* Skeleton menu items */}
+        <div className="flex-1 overflow-y-auto no-scrollbar px-4 md:px-6 lg:px-8 pt-3 pb-4">
+          <MenuItemSkeleton count={5} />
+        </div>
       </div>
     );
   }

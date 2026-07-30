@@ -2,7 +2,6 @@ import { useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { LoaderCircle, Send, Sparkles, X, Plus } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
 import { useApp } from '@/hooks/useAppContext';
 import { post } from '@/services/api';
 
@@ -27,12 +26,11 @@ const quickPrompts = ['Best under ₹100', 'Fast vegetarian', 'What is trending?
 interface GeminiAssistantProps {
   isOpen: boolean;
   onClose: () => void;
+  pathname: string;
 }
 
-export default function GeminiAssistant({ isOpen, onClose }: GeminiAssistantProps) {
+export default function GeminiAssistant({ isOpen, onClose, pathname }: GeminiAssistantProps) {
   const { addToCart, state } = useApp();
-  const location = useLocation();
-  const pathname = location.pathname;
 
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);

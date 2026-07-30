@@ -8,6 +8,7 @@ import {
 import { useApp } from '@/hooks/useAppContext';
 import { getMenuByCanteen, createMenuItem, updateMenuItem, deleteMenuItem } from '@/services/menu';
 import { extractErrorMessage } from '@/services/api';
+import { LoadingAnimation, ListItemSkeleton, SpinnerLoader } from '@/components/ui/loading-animation';
 import type { MenuItemDTO } from '@/services/menu';
 
 type MenuForm = {
@@ -159,10 +160,10 @@ export default function MenuManagementScreen() {
   // ─── Loading State ─────────────────────────────────────
   if (loading && items.length === 0) {
     return (
-      <div className="screen-surface h-full flex flex-col items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-2 border-[#FF6B35] border-t-transparent animate-spin" />
-        <p className="text-xs text-[#6B6B6B] mt-3">Loading menu...</p>
-      </div>
+      <LoadingAnimation
+        variant="fullscreen"
+        message="Loading menu..."
+      />
     );
   }
 
@@ -217,7 +218,7 @@ export default function MenuManagementScreen() {
         {/* Loading overlay for subsequent fetches */}
         {loading && items.length > 0 && (
           <div className="flex items-center justify-center py-3">
-            <div className="w-5 h-5 rounded-full border-2 border-[#FF6B35] border-t-transparent animate-spin" />
+            <LoadingAnimation variant="dots" size="sm" />
             <span className="text-xs text-[#6B6B6B] ml-2">Refreshing...</span>
           </div>
         )}
@@ -463,7 +464,7 @@ export default function MenuManagementScreen() {
                     className="flex-1 h-12 rounded-xl food-gradient text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-70"
                   >
                     {saving ? (
-                      <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                      <SpinnerLoader size="sm" />
                     ) : (
                       <><Save size={16} /> {editingItem ? 'Update' : 'Add'}</>
                     )}

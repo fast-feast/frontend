@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Minus, Plus, Trash2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
-import { suggestedCombos } from '@/data/mockData';
+import { suggestedCombos, menuItems } from '@/data/mockData';
+import type { ComboItem } from '@/types';
 
 export default function CartScreen() {
-  const { state, goBack, navigate, updateQuantity, cartTotal, showToast } = useApp();
+  const { state, goBack, navigate, updateQuantity, cartTotal, showToast, addToCart } = useApp();
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [spiceLevel, setSpiceLevel] = useState<Record<string, 'mild' | 'medium' | 'hot'>>({});
 
@@ -18,8 +19,36 @@ export default function CartScreen() {
     navigate('payment', 'push');
   };
 
-  const handleAddCombo = (_comboId: string) => {
-    showToast('Combo added!');
+  // Derive the canteenId from the first item in cart (all items must be from same canteen)
+  const activeCanteenId = state.cart.length > 0 ? state.cart[0].canteenId : null;
+
+  // Filter combos to only show ones from the same canteen as cart items
+  const filteredCombos = useMemo(() => {
+    if (!activeCanteenId) return [];
+    return suggestedCombos.filter(combo => combo.canteenId === activeCanteenId);
+  }, [activeCanteenId]);
+
+  const handleAddCombo = (combo: ComboItem) => {
+    let addedCount = 0;
+    combo.items.forEach(itemName => {
+      // Find matching menu item from the same canteen by name (case-insensitive)
+      const match = menuItems.find(
+        mi => mi.canteenId === activeCanteenId && mi.name.toLowerCase() === itemName.toLowerCase()
+      );
+      if (match && match.inStock) {
+        // Check if already in cart — if so, skip to avoid duplicates
+        const alreadyInCart = state.cart.some(ci => ci.id === match.id);
+        if (!alreadyInCart) {
+          addToCart(match.id, { ...match, quantity: 1 });
+          addedCount++;
+        }
+      }
+    });
+    if (addedCount > 0) {
+      showToast(`${combo.name} added to cart! Save ₹${combo.savings}`);
+    } else {
+      showToast('Items already in cart or unavailable', 'warning');
+    }
   };
 
   return (
@@ -145,14 +174,14 @@ export default function CartScreen() {
           ))}
         </AnimatePresence>
 
-        {/* Suggested Combos */}
-        {state.cart.length > 0 && (
+        {/* Suggested Combos — Filtered by the same canteen as cart items */}
+        {state.cart.length > 0 && filteredCombos.length > 0 && (
           <div className="mt-4">
             <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-1.5">
               <Sparkles size={14} className="text-yellow-400" /> Frequently Bought Together
             </h3>
             <div className="flex gap-2 overflow-x-auto no-scrollbar">
-              {suggestedCombos.map(combo => (
+              {filteredCombos.map(combo => (
                 <div key={combo.id} className="flex-shrink-0 w-[160px] xs:w-[180px] sm:w-[200px] bg-card rounded-xl p-3">
                   <p className="text-xs font-semibold text-white">{combo.name}</p>
                   <p className="text-[10px] text-[#6B6B6B] mt-0.5">{combo.items.join(' + ')}</p>
@@ -162,7 +191,7 @@ export default function CartScreen() {
                       <span className="text-[9px] text-[#6B6B6B] line-through ml-1">₹{combo.originalPrice}</span>
                     </div>
                     <button
-                      onClick={() => handleAddCombo(combo.id)}
+                      onClick={() => handleAddCombo(combo)}
                       className="px-3 py-1 rounded-full food-gradient text-white text-[10px] font-medium"
                     >
                       Add
