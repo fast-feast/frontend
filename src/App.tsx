@@ -63,7 +63,13 @@ function AnimatedOutlet() {
             }}
             style={{ zIndex: isActive ? 1 : 0 }}
           >
-            <AppRoutes location={path} />
+            {/*
+              Active view: render via real router location so redirect routes
+              (e.g. '/' → '/login') actually fire.
+              Cached (hidden) views: pin to their own path so they stay alive
+              without re-running redirects.
+            */}
+            <AppRoutes location={isActive ? undefined : path} />
           </motion.div>
         );
       })}
