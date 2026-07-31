@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { Search, Star, Clock, TrendingUp, Zap, ChevronRight } from 'lucide-react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { motion, useMotionValue, useAnimationFrame, animate, type PanInfo } from 'framer-motion';
+import { Search, Star, Clock, TrendingUp, Zap, ChevronLeft, ChevronRight, Pause, Play, Plus } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
 import { getAllCanteens, normalizeCanteen } from '@/services/canteens';
 import { getTrendingItems, getFastItems, normalizeMenuItem } from '@/services/menu';
@@ -9,6 +9,10 @@ import { CardSkeleton } from '@/components/ui/loading-animation';
 import type { Canteen, MenuItem } from '@/types';
 
 const filters = ['All', 'Veg', 'Fast', 'Popular', 'Under ₹100', 'Beverages'];
+
+// Trending marquee tuning
+const TRENDING_SPEED = 70; // px per second — whole strip glides together
+const TRENDING_NUDGE = 220; // px shifted per arrow click
 
 const RushDot = ({ level }: { level: 'low' | 'medium' | 'high' }) => {
   const colors = { low: '#10B981', medium: '#F59E0B', high: '#FF3B3B' };
@@ -176,6 +180,119 @@ export default function HomeScreen() {
   }, [fastItems, activeFilter, matchesFilter, matchesSearch]);
 
   const canteenCarouselRef = useRef<HTMLDivElement>(null);
+
+  // ─── Trending Marquee (whole section glides together + user-draggable) ───
+  const trendingTrackRef = useRef<HTMLDivElement>(null);
+  const trendingX = useMotionValue(0);
+  const halfWidthRef = useRef(1);
+  const trendingDragOffsetRef = useRef(0);
+  const suppressClickRef = useRef(false);
+  const trendingNudgeControlsRef = useRef<ReturnType<typeof animate> | null>(null);
+  const [trendingPlaying, setTrendingPlaying] = useState(true);
+  const [trendingHovered, setTrendingHovered] = useState(false);
+  const [trendingDragging, setTrendingDragging] = useState(false);
+  const [trendingManualPause, setTrendingManualPause] = useState(false);
+  const [trendingNudging, setTrendingNudging] = useState(false);
+  // Auto-glide only when the user isn't hovering, dragging, paused or nudging
+  const trendingAutoActive =
+    trendingPlaying && !trendingHovered && !trendingDragging &&
+    !trendingManualPause && !trendingNudging;
+
+  // Measure half the duplicated track so the glide can wrap seamlessly
+  const measureTrendingTrack = useCallback(() => {
+    const el = trendingTrackRef.current;
+    if (el && el.scrollWidth > 0) {
+      halfWidthRef.current = el.scrollWidth / 2;
+    }
+  }, []);
+
+  useEffect(() => {
+    measureTrendingTrack();
+    window.addEventListener('resize', measureTrendingTrack);
+    return () => window.removeEventListener('resize', measureTrendingTrack);
+  }, [measureTrendingTrack, filteredTrendingItems.length]);
+
+  // Wrap any translate into the periodic range [-half, 0]. Content is rendered
+  // twice, so the strip looks identical at x and x ± half — no visual jump.
+  const normalizeTrendingX = (v: number) => {
+    const half = halfWidthRef.current || 1;
+    let r = v % half;
+    if (r > 0) r -= half;
+    return r;
+  };
+
+  // Constant-speed glide — the ENTIRE section moves as one, looping seamlessly
+  useAnimationFrame((_, delta) => {
+    if (!trendingAutoActive) return;
+    if (halfWidthRef.current <= 1) return; // wait for the track to be measured
+    trendingX.set(normalizeTrendingX(trendingX.get() - (TRENDING_SPEED * delta) / 1000));
+  });
+
+  const handleTrendingDragStart = () => {
+    trendingDragOffsetRef.current = 0;
+    // Cancel any in-flight nudge so it can't fight the drag
+    trendingNudgeControlsRef.current?.stop();
+    trendingNudgeControlsRef.current = null;
+    setTrendingNudging(false);
+    setTrendingDragging(true);
+  };
+
+  // Track how far the pointer actually moved so a drag isn't mistaken for a tap
+  const handleTrendingDrag = (_: PointerEvent, info: PanInfo) => {
+    trendingDragOffsetRef.current = Math.max(
+      trendingDragOffsetRef.current,
+      Math.abs(info.offset.x)
+    );
+  };
+
+  const handleTrendingDragEnd = () => {
+    // Browsers still fire `click` after a drag — suppress the card's tap handler
+    if (trendingDragOffsetRef.current > 8) {
+      suppressClickRef.current = true;
+      window.setTimeout(() => {
+        suppressClickRef.current = false;
+      }, 0);
+    }
+    setTrendingDragging(false);
+    trendingX.set(normalizeTrendingX(trendingX.get()));
+  };
+
+  // Manual arrow navigation briefly pauses the auto-glide so the user can browse
+  const trendingPauseTimerRef = useRef<number | undefined>(undefined);
+  const pauseTrendingAutoplay = () => {
+    setTrendingManualPause(true);
+    if (trendingPauseTimerRef.current) window.clearTimeout(trendingPauseTimerRef.current);
+    trendingPauseTimerRef.current = window.setTimeout(() => {
+      setTrendingManualPause(false);
+      trendingPauseTimerRef.current = undefined;
+    }, 6000);
+  };
+
+  // Clean up the manual-pause timer if the screen unmounts mid-pause
+  useEffect(() => {
+    return () => {
+      if (trendingPauseTimerRef.current) window.clearTimeout(trendingPauseTimerRef.current);
+    };
+  }, []);
+
+  const nudgeTrending = (dir: 1 | -1) => {
+    if (trendingNudging) return;
+    pauseTrendingAutoplay();
+    setTrendingNudging(true);
+    trendingNudgeControlsRef.current?.stop();
+    trendingNudgeControlsRef.current = animate(trendingX, trendingX.get() + dir * TRENDING_NUDGE, {
+      duration: 0.45,
+      ease: 'easeOut',
+      onComplete: () => {
+        trendingX.set(normalizeTrendingX(trendingX.get()));
+        setTrendingNudging(false);
+        trendingNudgeControlsRef.current = null;
+      },
+    });
+  };
+
+  const handleTrendingPrev = () => nudgeTrending(1);
+  const handleTrendingNext = () => nudgeTrending(-1);
 
   const handleSeeAllCanteens = () => {
     navigate('allCanteens', 'push');
@@ -379,7 +496,7 @@ export default function HomeScreen() {
         </div>
       </motion.div>
 
-      {/* Trending Section - Infinite Auto-Scroll Carousel */}
+      {/* Trending Section - Infinite Auto-Scroll Carousel (user-draggable) */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -387,35 +504,76 @@ export default function HomeScreen() {
         className="mt-6 px-4 md:px-6 lg:px-8"
       >
         <div className="max-w-5xl mx-auto">
-          <div className="mb-3">
-            <h2 className="text-lg md:text-xl font-bold text-white tracking-tight flex items-center gap-1.5">
-              <TrendingUp size={18} className="text-[#D94A5A]" /> Trending Now
-            </h2>
-            {activeFilter !== 'All' && (
-              <p className="text-[11px] md:text-sm text-[#D94A5A] mt-0.5">{activeFilter} picks for you</p>
-            )}
-          </div>
-          {/* Infinite marquee: duplicate items to create seamless loop */}
-          {filteredTrendingItems.length > 0 ? (
-            <div className="overflow-hidden pb-2 relative group">
-              <motion.div
-                className="flex gap-3"
-                style={{ width: 'max-content' }}
-                animate={{
-                  x: ['0%', '-50%'],
-                }}
-                transition={{
-                  duration: filteredTrendingItems.length * 3,
-                  ease: 'linear',
-                  repeat: Infinity,
-                  repeatType: 'loop',
-                }}
+          <div className="flex items-end justify-between mb-3">
+            <div>
+              <h2 className="text-lg md:text-xl font-bold text-white tracking-tight flex items-center gap-1.5">
+                <TrendingUp size={18} className="text-[#D94A5A]" /> Trending Now
+              </h2>
+              {activeFilter !== 'All' && (
+                <p className="text-[11px] md:text-sm text-[#D94A5A] mt-0.5">{activeFilter} picks for you</p>
+              )}
+            </div>
+            {/* Carousel controls: pause/play + infinite prev/next */}
+            <div className="flex items-center gap-1.5">
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setTrendingPlaying(p => !p)}
+                aria-label={trendingPlaying ? 'Pause auto-scroll' : 'Resume auto-scroll'}
+                title={trendingPlaying ? 'Pause auto-scroll' : 'Resume auto-scroll'}
+                className="w-8 h-8 rounded-full bg-card border border-white/[0.08] flex items-center justify-center hover:border-[#D94A5A]/50 transition-colors"
               >
-                {/* Render items twice for seamless infinite scroll */}
+                {trendingPlaying ? (
+                  <Pause size={13} className="text-white" />
+                ) : (
+                  <Play size={13} className="text-[#D94A5A]" />
+                )}
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={handleTrendingPrev}
+                aria-label="Previous trending items"
+                className="w-8 h-8 rounded-full bg-card border border-white/[0.08] flex items-center justify-center hover:border-[#D94A5A]/50 transition-colors"
+              >
+                <ChevronLeft size={16} className="text-white" />
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={handleTrendingNext}
+                aria-label="Next trending items"
+                className="w-8 h-8 rounded-full bg-card border border-white/[0.08] flex items-center justify-center hover:border-[#D94A5A]/50 transition-colors"
+              >
+                <ChevronRight size={16} className="text-white" />
+              </motion.button>
+            </div>
+          </div>
+          {/* Continuous whole-section glide — drag in either direction forever */}
+          {filteredTrendingItems.length > 0 ? (
+            <div
+              className="overflow-hidden pb-2 relative"
+              onMouseEnter={() => setTrendingHovered(true)}
+              onMouseLeave={() => setTrendingHovered(false)}
+            >
+              <motion.div
+                ref={trendingTrackRef}
+                className="flex gap-3 w-max cursor-grab active:cursor-grabbing select-none"
+                style={{ x: trendingX, touchAction: 'pan-y' }}
+                drag="x"
+                dragElastic={0}
+                dragMomentum={false}
+                onDragStart={handleTrendingDragStart}
+                onDrag={handleTrendingDrag}
+                onDragEnd={handleTrendingDragEnd}
+              >
+                {/* Items rendered twice so the glide loops seamlessly */}
                 {[...filteredTrendingItems, ...filteredTrendingItems].map((item, i) => (
-                  <motion.div
+                  <motion.button
                     key={`${item.id}-${i}`}
-                    className="trending-card flex-shrink-0 w-[160px] xs:w-[180px] sm:w-[200px] md:w-[220px] lg:w-[240px] bg-card rounded-2xl overflow-hidden text-left"
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => {
+                      if (suppressClickRef.current) return;
+                      handleAddToCart(item);
+                    }}
+                    className="trending-card flex-shrink-0 w-[160px] xs:w-[180px] sm:w-[200px] md:w-[220px] lg:w-[240px] bg-card rounded-2xl overflow-hidden text-left group/card"
                   >
                     <div className="relative">
                       <img src={item.image} alt={item.name} className="w-full h-[100px] xs:h-[110px] md:h-[130px] lg:h-[150px] object-cover" />
@@ -424,7 +582,10 @@ export default function HomeScreen() {
                           Trending
                         </span>
                       </div>
-
+                      {/* Add-to-cart affordance */}
+                      <div className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-[#0A0508]/70 backdrop-blur flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity duration-200 pointer-events-none">
+                        <Plus size={14} className="text-[#D94A5A]" />
+                      </div>
                     </div>
                     <div className="p-2.5 md:p-3">
                       <h4 className="text-sm md:text-base font-semibold text-white truncate">{item.name}</h4>
@@ -436,7 +597,7 @@ export default function HomeScreen() {
                         </span>
                       </div>
                     </div>
-                  </motion.div>
+                  </motion.button>
                 ))}
               </motion.div>
               {/* Gradient fade edges for smooth entry/exit */}

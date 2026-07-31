@@ -2,11 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft, Plus, Pencil, Trash2, X, Check, RefreshCw,
+  ArrowLeft, Plus, Pencil, Trash2, X, Check, RefreshCw, Flame,
   UtensilsCrossed, Leaf, AlertTriangle, Clock, Save,
 } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
 import { getMenuByCanteen, createMenuItem, updateMenuItem, deleteMenuItem } from '@/services/menu';
+import { clearCache } from '@/services/cache';
 import { extractErrorMessage } from '@/services/api';
 import { LoadingAnimation, SpinnerLoader } from '@/components/ui/loading-animation';
 import type { MenuItemDTO } from '@/services/menu';
@@ -125,6 +126,8 @@ export default function MenuManagementScreen() {
         await createMenuItem(payload);
         showToast(`${form.name} added to menu`);
       }
+      // Menu changed — bust the home screen cache so trending reflects it
+      clearCache('home_screen_data');
       setShowForm(false);
       setEditingItem(null);
       await fetchMenu();
@@ -139,6 +142,8 @@ export default function MenuManagementScreen() {
     if (!deleteTarget) return;
     try {
       await deleteMenuItem(deleteTarget._id);
+      // Menu changed — bust the home screen cache so trending reflects it
+      clearCache('home_screen_data');
       showToast(`${deleteTarget.name} deleted`);
       setDeleteTarget(null);
       await fetchMenu();
@@ -150,7 +155,21 @@ export default function MenuManagementScreen() {
   const handleToggleStock = async (item: MenuItemDTO) => {
     try {
       await updateMenuItem(item._id, { inStock: !item.inStock });
+      // Stock changes affect the trending carousel (only in-stock items show)
+      clearCache('home_screen_data');
       showToast(`${item.name} ${item.inStock ? 'out of stock' : 'back in stock'}`);
+      await fetchMenu();
+    } catch (err) {
+      showToast(extractErrorMessage(err), 'error');
+    }
+  };
+
+  const handleToggleTrending = async (item: MenuItemDTO) => {
+    try {
+      await updateMenuItem(item._id, { isTrending: !item.isTrending });
+      // Trending carousel on home must refresh to include/exclude this item
+      clearCache('home_screen_data');
+      showToast(`${item.name} ${item.isTrending ? 'removed from' : 'added to'} trending`);
       await fetchMenu();
     } catch (err) {
       showToast(extractErrorMessage(err), 'error');
@@ -287,6 +306,17 @@ export default function MenuManagementScreen() {
                       title={item.inStock ? 'Mark out of stock' : 'Mark in stock'}
                     >
                       {item.inStock ? <Check size={12} /> : <X size={12} />}
+                    </motion.button>
+                    {/* Quick toggle trending */}
+                    <motion.button
+                      whileTap={{ scale: 0.85 }}
+                      onClick={() => handleToggleTrending(item)}
+                      className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
+                        item.isTrending ? 'bg-amber-500/25 text-amber-400' : 'bg-card text-[#6B6B6B] hover:text-amber-400'
+                      }`}
+                      title={item.isTrending ? 'Remove from trending' : 'Add to trending'}
+                    >
+                      <Flame size={11} />
                     </motion.button>
                     {/* Edit */}
                     <motion.button
