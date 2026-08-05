@@ -34,7 +34,7 @@ export default function OrdersScreen() {
       }
     }
     loadOrders();
-  }, []);
+  }, [dispatch]);
 
   const allOrders = state.orders;
   const activeOrders = allOrders.filter(o => o.status === 'received' || o.status === 'preparing' || o.status === 'ready');

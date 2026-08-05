@@ -89,7 +89,7 @@ export default function ProfileScreen() {
       }
     }
     refreshProfile();
-  }, []);
+  }, [dispatch]);
 
   const handleToggle = (label: string) => {
     if (label === 'Dark Mode') return;

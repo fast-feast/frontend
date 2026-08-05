@@ -51,30 +51,24 @@ export default function AllCanteensScreen() {
     return () => { cancelled = true; };
   }, []);
 
-  const matchesSearch = (c: Canteen) => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return true;
-    return (
-      c.name.toLowerCase().includes(q) ||
-      c.tags.some(t => t.toLowerCase().includes(q)) ||
-      c.description?.toLowerCase().includes(q)
-    );
-  };
-
-  const matchesFilter = (c: Canteen) => {
-    switch (activeFilter) {
-      case 'All': return true;
-      case 'Veg': return c.tags?.some(t => t.toLowerCase().includes('veg') || t.toLowerCase().includes('vegetarian'));
-      case 'Fast': return c.tags?.some(t => t.toLowerCase().includes('fast'));
-      case 'Popular': return c.rating >= 4.3;
-      case 'Under ₹100': return true;
-      case 'Beverages': return c.categories?.some(cat => cat.toLowerCase() === 'beverages');
-      default: return true;
-    }
-  };
-
   const filteredCanteens = useMemo(() => {
-    return canteens.filter(c => matchesSearch(c) && matchesFilter(c));
+    const q = searchQuery.toLowerCase().trim();
+    return canteens.filter(c => {
+      const searchMatch =
+        !q ||
+        c.name.toLowerCase().includes(q) ||
+        c.tags.some(t => t.toLowerCase().includes(q)) ||
+        c.description?.toLowerCase().includes(q);
+      let filterMatch = true;
+      switch (activeFilter) {
+        case 'Veg': filterMatch = c.tags?.some(t => t.toLowerCase().includes('veg') || t.toLowerCase().includes('vegetarian')); break;
+        case 'Fast': filterMatch = c.tags?.some(t => t.toLowerCase().includes('fast')); break;
+        case 'Popular': filterMatch = c.rating >= 4.3; break;
+        case 'Under ₹100': filterMatch = true; break;
+        case 'Beverages': filterMatch = c.categories?.some(cat => cat.toLowerCase() === 'beverages'); break;
+      }
+      return searchMatch && filterMatch;
+    });
   }, [canteens, searchQuery, activeFilter]);
 
   const handleCanteenTap = (id: string) => {

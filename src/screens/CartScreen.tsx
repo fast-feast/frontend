@@ -1,14 +1,16 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Minus, Plus, Trash2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
 import { suggestedCombos, menuItems } from '@/data/mockData';
+import { getCanteenById } from '@/services/canteens';
 import type { ComboItem } from '@/types';
 
 export default function CartScreen() {
   const { state, goBack, navigate, updateQuantity, cartTotal, showToast, addToCart } = useApp();
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [spiceLevel, setSpiceLevel] = useState<Record<string, 'mild' | 'medium' | 'hot'>>({});
+  const [canteenName, setCanteenName] = useState('');
 
   const gst = Math.round(cartTotal * 0.05);
   const platformFee = 5;
@@ -21,6 +23,16 @@ export default function CartScreen() {
 
   // Derive the canteenId from the first item in cart (all items must be from same canteen)
   const activeCanteenId = state.cart.length > 0 ? state.cart[0].canteenId : null;
+
+  // Fetch the real canteen name for the header — never hardcode a canteen name.
+  useEffect(() => {
+    if (!activeCanteenId) return;
+    let cancelled = false;
+    getCanteenById(activeCanteenId)
+      .then((res) => { if (!cancelled) setCanteenName(res.data.name); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [activeCanteenId]);
 
   // Filter combos to only show ones from the same canteen as cart items
   const filteredCombos = useMemo(() => {
@@ -60,7 +72,7 @@ export default function CartScreen() {
         </motion.button>
         <div>
           <h1 className="text-xl font-bold text-white">Your Cart</h1>
-          <p className="text-xs text-[#A0A0A0]">{state.cart.length} item{state.cart.length !== 1 ? 's' : ''} from {state.cart[0]?.canteenId ? 'Main Canteen' : ''}</p>
+          <p className="text-xs text-[#A0A0A0]">{state.cart.length} item{state.cart.length !== 1 ? 's' : ''}{state.cart.length > 0 && canteenName ? ` from ${canteenName}` : ''}</p>
         </div>
       </div>
 

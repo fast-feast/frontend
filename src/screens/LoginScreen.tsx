@@ -1,19 +1,28 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRight, Phone, ShieldCheck, UserRound, UtensilsCrossed,
-  Mail, Lock, Eye, EyeOff,
+  Mail, Lock, Eye, EyeOff, ArrowLeft,
 } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
 import { login, sendOtp, verifyOtp } from '@/services/auth';
 import { extractErrorMessage } from '@/services/api';
 import { SpinnerLoader } from '@/components/ui/loading-animation';
+import { ROUTES } from '@/routes/paths';
 
 type LoginMethod = 'email' | 'otp';
 
 export default function LoginScreen() {
   const { loginWithToken, showToast } = useApp();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // This screen serves BOTH the student login (/login) and the canteen
+  // owner login (/canteen/login). The canteen variant rejects accounts
+  // that are not canteen owners and links back to the student login.
+  const isCanteenRoute = location.pathname === ROUTES.LOGIN_CANTEEN;
 
   const [loginMethod, setLoginMethod] = useState<LoginMethod>('email');
 
@@ -51,6 +60,14 @@ export default function LoginScreen() {
     try {
       const res = await login({ email: email.trim(), password });
       const { user, token } = res.data;
+
+      // Canteen login admits canteen owners only — reject everyone else
+      // before storing the token.
+      if (isCanteenRoute && user.role !== 'canteen_owner') {
+        setError('This account does not have canteen access.');
+        return;
+      }
+
       loginWithToken(token, {
         name: user.name,
         phone: user.phone,
@@ -83,6 +100,13 @@ export default function LoginScreen() {
       } else {
         const res = await verifyOtp({ phone: `+91 ${mobileNumber}`, otp, name: userName.trim() });
         const { user, token } = res.data;
+
+        // Canteen login admits canteen owners only.
+        if (isCanteenRoute && user.role !== 'canteen_owner') {
+          setError('This account does not have canteen access.');
+          return;
+        }
+
         loginWithToken(token, {
           name: user.name,
           phone: user.phone,
@@ -105,6 +129,16 @@ export default function LoginScreen() {
       <div className="absolute bottom-[20%] left-[10%] w-[200px] h-[200px] rounded-full bg-[#1A1A2E]/6 blur-[70px] pointer-events-none" />
 
       <div className="relative flex-1 flex flex-col justify-center w-full max-w-[420px] lg:max-w-[480px] mx-auto">
+        {isCanteenRoute && (
+          <button
+            onClick={() => navigate(ROUTES.LOGIN)}
+            className="self-start mb-6 text-xs text-[#6B6B6B] hover:text-white transition-colors flex items-center gap-1.5"
+          >
+            <ArrowLeft size={14} />
+            Back to FastFeast
+          </button>
+        )}
+
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -115,9 +149,15 @@ export default function LoginScreen() {
             <UtensilsCrossed size={30} className="text-white" />
           </div>
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white leading-tight">
-            Login to <span className="text-[#FF6B35]">FastFeast</span>
+            {isCanteenRoute ? (
+              <>Canteen <span className="text-[#FF6B35]">Login</span></>
+            ) : (
+              <>Login to <span className="text-[#FF6B35]">FastFeast</span></>
+            )}
           </h1>
-          <p className="mt-2 text-sm text-[#A0A0A0] leading-relaxed">Sign in to order your favorites.</p>
+          <p className="mt-2 text-sm text-[#A0A0A0] leading-relaxed">
+            {isCanteenRoute ? 'Sign in to manage your canteen.' : 'Sign in to order your favorites.'}
+          </p>
         </motion.div>
 
         {/* Method Tabs */}
@@ -328,6 +368,18 @@ export default function LoginScreen() {
           </motion.form>
         )}
         </AnimatePresence>
+
+        {/* Admin access */}
+        {!isCanteenRoute && (
+          <button
+            type="button"
+            onClick={() => navigate(ROUTES.ADMIN_LOGIN)}
+            className="mt-6 w-full text-center text-xs text-[#6B6B6B] hover:text-[#FF6B35] transition-colors flex items-center justify-center gap-1.5"
+          >
+            <ShieldCheck size={13} />
+            Admin Login
+          </button>
+        )}
       </div>
     </div>
   );

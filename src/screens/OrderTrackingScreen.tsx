@@ -3,8 +3,10 @@ import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, CheckCircle2, ChefHat, PackageCheck, Phone, XCircle } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
+import { usePageActive } from '@/hooks/usePageActive';
 import { QRCodeSVG } from 'qrcode.react';
 import { getOrderById, updateOrderStatus, cancelOrder } from '@/services/orders';
+import type { OrderDTO } from '@/services/orders';
 import { extractErrorMessage } from '@/services/api';
 import { LoadingAnimation } from '@/components/ui/loading-animation';
 
@@ -28,15 +30,20 @@ export default function OrderTrackingScreen() {
   const { orderId } = useParams<{ orderId: string }>();
   const { state, goBack, dispatch, navigate, showToast } = useApp();
   const [status, setStatus] = useState<OrderStatus>('received');
-  const [queuePosition, setQueuePosition] = useState(5);
-  const [estimatedTime, setEstimatedTime] = useState('15-20 min');
+  const [order, setOrder] = useState<OrderDTO | null>(null);
+  const [queuePosition, setQueuePosition] = useState(0);
+  const [estimatedTime, setEstimatedTime] = useState('');
   const [pickedUp, setPickedUp] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const token = state.tokenNumber || 'A-042';
+  // Real token from the fetched order (fallback: the token stored at payment time).
+  const token = order?.token || state.tokenNumber;
   const activeOrderId = orderId || state.activeOrderId;
+  // Only poll while this page is the visible/active one (active route layer
+  // AND browser tab in the foreground). Background pages must not hit APIs.
+  const pageActive = usePageActive();
 
   // ─── Poll backend for real order status ──────────────
   const fetchOrder = useCallback(async () => {
@@ -44,6 +51,7 @@ export default function OrderTrackingScreen() {
     try {
       const res = await getOrderById(activeOrderId);
       const order = res.data;
+      setOrder(order);
       setStatus(order.status);
       setQueuePosition(order.queuePosition ?? 0);
       if (order.estimatedTime) setEstimatedTime(order.estimatedTime);
@@ -56,10 +64,34 @@ export default function OrderTrackingScreen() {
   }, [activeOrderId]);
 
   useEffect(() => {
-    fetchOrder();
-    const interval = setInterval(fetchOrder, 5000);
-    return () => clearInterval(interval);
-  }, [fetchOrder]);
+    if (!pageActive) return; // inactive page — do not fetch or poll
+    let cancelled = false;
+
+    async function load() {
+      if (!activeOrderId) return;
+      try {
+        const res = await getOrderById(activeOrderId);
+        if (cancelled) return;
+        const order = res.data;
+        setOrder(order);
+        setStatus(order.status);
+        setQueuePosition(order.queuePosition ?? 0);
+        if (order.estimatedTime) setEstimatedTime(order.estimatedTime);
+        setError(null);
+      } catch (err) {
+        if (!cancelled) setError(extractErrorMessage(err));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    const interval = setInterval(load, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [pageActive, activeOrderId]);
 
   const currentStepIndex = status === 'completed' || status === 'cancelled'
     ? -1
@@ -148,7 +180,7 @@ export default function OrderTrackingScreen() {
       >
         <div>
           <p className="text-4xl font-extrabold text-[#FF6B35] text-shadow-token tracking-tighter">{token}</p>
-          <p className="text-[10px] text-[#6B6B6B] mt-1">{state.canteen?.name || 'Canteen'} • Estimated {estimatedTime}</p>
+          <p className="text-[10px] text-[#6B6B6B] mt-1">{order?.canteenName || state.canteen?.name || 'Canteen'} • Estimated {estimatedTime || '--'}</p>
         </div>
         <div className="bg-card-elevated p-1.5 rounded-xl">
           <QRCodeSVG value={`FASTFEAST:${token}`} size={56} bgColor="#1A1A1A" fgColor="#FFFFFF" level="L" />
@@ -290,7 +322,7 @@ export default function OrderTrackingScreen() {
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-2xl font-bold text-[#FF6B35]">{estimatedTime}</span>
+              <span className="text-2xl font-bold text-[#FF6B35]">{estimatedTime || '--'}</span>
               <span className="text-[9px] text-[#6B6B6B]">est. time</span>
             </div>
           </div>
@@ -315,7 +347,7 @@ export default function OrderTrackingScreen() {
       {/* Call Canteen */}
       <div className="mx-4 md:mx-6 lg:mx-8 mt-3 bg-card rounded-2xl p-3 flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-white">{state.canteen?.name || 'Canteen'}</p>
+          <p className="text-sm font-medium text-white">{order?.canteenName || state.canteen?.name || 'Canteen'}</p>
           <p className="text-[10px] text-[#6B6B6B]">Counter</p>
         </div>
         <motion.button whileTap={{ scale: 0.92 }} className="w-10 h-10 rounded-full bg-card-elevated flex items-center justify-center">

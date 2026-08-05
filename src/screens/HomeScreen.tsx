@@ -14,6 +14,48 @@ const filters = ['All', 'Veg', 'Fast', 'Popular', 'Under ₹100', 'Beverages'];
 const TRENDING_SPEED = 70; // px per second — whole strip glides together
 const TRENDING_NUDGE = 220; // px shifted per arrow click
 
+// Pure filter helpers (no hooks) so the memoized lists stay memoizable.
+function matchesMenuItemSearch(item: MenuItem, query: string): boolean {
+  const q = query.toLowerCase().trim();
+  if (!q) return true;
+  return (
+    item.name.toLowerCase().includes(q) ||
+    item.description.toLowerCase().includes(q)
+  );
+}
+
+function matchesMenuItemFilter(item: MenuItem, filter: string): boolean {
+  switch (filter) {
+    case 'All': return true;
+    case 'Veg': return item.isVeg;
+    case 'Fast': return item.isFast === true;
+    case 'Popular': return item.isTrending === true;
+    case 'Under ₹100': return item.price < 100;
+    case 'Beverages': return item.category?.toLowerCase() === 'beverages';
+    default: return true;
+  }
+}
+
+function matchesCanteenSearch(c: Canteen, query: string): boolean {
+  const q = query.toLowerCase().trim();
+  if (!q) return true;
+  return (
+    c.name.toLowerCase().includes(q) ||
+    c.tags.some(t => t.toLowerCase().includes(q))
+  );
+}
+
+function matchesCanteenFilter(c: Canteen, filter: string): boolean {
+  switch (filter) {
+    case 'Veg': return c.tags?.some(t => t.toLowerCase().includes('veg') || t.toLowerCase().includes('vegetarian'));
+    case 'Fast': return c.tags?.some(t => t.toLowerCase().includes('fast'));
+    case 'Popular': return c.rating >= 4.3;
+    case 'Under ₹100': return true;
+    case 'Beverages': return c.categories?.some(cat => cat.toLowerCase() === 'beverages');
+    default: return true;
+  }
+}
+
 const RushDot = ({ level }: { level: 'low' | 'medium' | 'high' }) => {
   const colors = { low: '#10B981', medium: '#F59E0B', high: '#FF3B3B' };
   const labels = { low: 'Low Rush', medium: 'Medium Rush', high: 'High Rush' };
@@ -47,25 +89,25 @@ export default function HomeScreen() {
   const HOME_CACHE_KEY = 'home_screen_data';
 
   useEffect(() => {
-    // 1. Try loading from cache first (instant render)
-    const cached = getCached<{
-      canteens: Canteen[];
-      trending: MenuItem[];
-      fast: MenuItem[];
-    }>(HOME_CACHE_KEY);
-
-    if (cached) {
-      setCanteens(cached.canteens);
-      setTrendingItems(cached.trending);
-      setFastItems(cached.fast);
-      setLoading(false);
-      return; // Skip fetch — data is fresh
-    }
-
-    // 2. No cache — fetch from API
     let cancelled = false;
 
     async function loadData() {
+      // 1. Try loading from cache first (instant render)
+      const cached = getCached<{
+        canteens: Canteen[];
+        trending: MenuItem[];
+        fast: MenuItem[];
+      }>(HOME_CACHE_KEY);
+
+      if (cached) {
+        setCanteens(cached.canteens);
+        setTrendingItems(cached.trending);
+        setFastItems(cached.fast);
+        setLoading(false);
+        return; // Skip fetch — data is fresh
+      }
+
+      // 2. No cache — fetch from API
       try {
         const [canteensRes, trendingRes, fastRes] = await Promise.all([
           getAllCanteens(),
@@ -106,78 +148,32 @@ export default function HomeScreen() {
     return state.orders.find(o => o.id === state.activeOrderId) || null;
   }, [state.orders, state.activeOrderId]);
 
-  // Filtering logic
-  const matchesSearch = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return () => true;
-    return (item: MenuItem) =>
-      item.name.toLowerCase().includes(q) ||
-      item.description.toLowerCase().includes(q);
-  }, [searchQuery]);
-
-  const matchesFilter = useMemo(() => {
-    return (item: MenuItem) => {
-      switch (activeFilter) {
-        case 'All': return true;
-        case 'Veg': return item.isVeg;
-        case 'Fast': return item.isFast === true;
-        case 'Popular': return item.isTrending === true;
-        case 'Under ₹100': return item.price < 100;
-        case 'Beverages': return item.category?.toLowerCase() === 'beverages';
-        default: return true;
-      }
-    };
-  }, [activeFilter]);
-
-  const canteenMatchesSearch = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return () => true;
-    return (c: Canteen) =>
-      c.name.toLowerCase().includes(q) ||
-      c.tags.some(t => t.toLowerCase().includes(q));
-  }, [searchQuery]);
-
   const filteredCanteens = useMemo(() => {
-    let result = canteens;
-    // Apply search
-    result = result.filter(canteenMatchesSearch);
+    let result = canteens.filter(c => matchesCanteenSearch(c, searchQuery));
     // Apply filter
     if (activeFilter !== 'All') {
-      result = result.filter(c => {
-        switch (activeFilter) {
-          case 'Veg': return c.tags?.some(t => t.toLowerCase().includes('veg') || t.toLowerCase().includes('vegetarian'));
-          case 'Fast': return c.tags?.some(t => t.toLowerCase().includes('fast'));
-          case 'Popular': return c.rating >= 4.3;
-          case 'Under ₹100': return true;
-          case 'Beverages': return c.categories?.some(cat => cat.toLowerCase() === 'beverages');
-          default: return true;
-        }
-      });
+      result = result.filter(c => matchesCanteenFilter(c, activeFilter));
     }
     return result;
-  }, [canteens, activeFilter, canteenMatchesSearch]);
+  }, [canteens, activeFilter, searchQuery]);
 
   const filteredTrendingItems = useMemo(() => {
-    let result = trendingItems;
-    // Apply search
-    result = result.filter(matchesSearch);
+    let result = trendingItems.filter(item => matchesMenuItemSearch(item, searchQuery));
     // Apply filter
     if (activeFilter !== 'All') {
-      result = result.filter(matchesFilter);
+      result = result.filter(item => matchesMenuItemFilter(item, activeFilter));
     }
     return result;
-  }, [trendingItems, activeFilter, matchesFilter, matchesSearch]);
+  }, [trendingItems, activeFilter, searchQuery]);
 
   const filteredFastItems = useMemo(() => {
-    let result = fastItems;
-    // Apply search
-    result = result.filter(matchesSearch);
+    let result = fastItems.filter(item => matchesMenuItemSearch(item, searchQuery));
     // Apply filter
     if (activeFilter !== 'All') {
-      result = result.filter(matchesFilter);
+      result = result.filter(item => matchesMenuItemFilter(item, activeFilter));
     }
     return result;
-  }, [fastItems, activeFilter, matchesFilter, matchesSearch]);
+  }, [fastItems, activeFilter, searchQuery]);
 
   const canteenCarouselRef = useRef<HTMLDivElement>(null);
 

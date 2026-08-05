@@ -93,11 +93,14 @@ function Carousel({
 
   React.useEffect(() => {
     if (!api) return
-    onSelect(api)
+    // Sync the initial scroll state without calling setState synchronously
+    // inside the effect body — defer to the next frame, before paint.
+    const frame = requestAnimationFrame(() => onSelect(api))
     api.on("reInit", onSelect)
     api.on("select", onSelect)
 
     return () => {
+      cancelAnimationFrame(frame)
       api?.off("select", onSelect)
     }
   }, [api, onSelect])

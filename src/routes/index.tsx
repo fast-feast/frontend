@@ -1,9 +1,9 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ROUTES } from './paths';
-import { ProtectedRoute, PublicRoute, RoleRoute } from '@/guards/ProtectedRoute';
+import { PublicRoute, RoleRoute } from '@/guards/ProtectedRoute';
+import AdminLayout from '@/components/AdminLayout';
 import { LoadingAnimation } from '@/components/ui/loading-animation';
-import type { Location } from 'react-router-dom';
 
 // ─── Lazy-loaded screens ───────────────────────────────
 
@@ -21,6 +21,10 @@ const OffersScreen = lazy(() => import('@/screens/OffersScreen'));
 const ProfileScreen = lazy(() => import('@/screens/ProfileScreen'));
 const CanteenDashboardScreen = lazy(() => import('@/screens/CanteenDashboardScreen'));
 const AdminScreen = lazy(() => import('@/screens/AdminScreen'));
+const AdminLoginScreen = lazy(() => import('@/screens/AdminLoginScreen'));
+const AdminUsersScreen = lazy(() => import('@/screens/AdminUsersScreen'));
+const AdminCanteensScreen = lazy(() => import('@/screens/AdminCanteensScreen'));
+const AdminOrdersScreen = lazy(() => import('@/screens/AdminOrdersScreen'));
 const MenuManagementScreen = lazy(() => import('@/screens/MenuManagementScreen'));
 const CanteenSettingsScreen = lazy(() => import('@/screens/CanteenSettingsScreen'));
 const AllCanteensScreen = lazy(() => import('@/screens/AllCanteensScreen'));
@@ -37,80 +41,117 @@ function RouteFallback() {
   );
 }
 
-// ─── Shared route elements for keep-alive caching ──────
-// Extracted into an array so multiple <Routes> instances can
-// render the same route definitions with different locations.
-
-type RouteItem = {
-  path: string;
-  element: React.ReactNode;
-};
-
-// ─── Redirect-only routes (never cached) ───────────
-// These use <Navigate> and must NOT be rendered inside cached pages
-// because <Navigate> fires on every render, even when hidden.
-const REDIRECT_ROUTES: RouteItem[] = [
-  { path: ROUTES.ROOT, element: <Navigate to={ROUTES.LOGIN} replace /> },
-];
-
-// ─── Content routes (eligible for keep-alive caching) ─
-const CONTENT_ROUTES: RouteItem[] = [
-  // ─── Public / Pre-Auth Routes ─────────────────
-  { path: ROUTES.ONBOARDING, element: <OnboardingScreen /> },
-  { path: ROUTES.LOGIN, element: <PublicRoute><LoginScreen /></PublicRoute> },
-  { path: ROUTES.LOGIN_CANTEEN, element: <PublicRoute><LoginScreen /></PublicRoute> },
-
-  // ─── Canteen Owner Routes ────────────────────
-  { path: ROUTES.CANTEEN_DASHBOARD, element: <RoleRoute allowedRoles={['canteen_owner', 'admin']}><CanteenDashboardScreen /></RoleRoute> },
-  { path: ROUTES.MENU_MANAGEMENT, element: <RoleRoute allowedRoles={['canteen_owner', 'admin']}><MenuManagementScreen /></RoleRoute> },
-  { path: ROUTES.CANTEEN_SETTINGS, element: <RoleRoute allowedRoles={['canteen_owner', 'admin']}><CanteenSettingsScreen /></RoleRoute> },
-
-  // ─── Admin Routes ───────────────────────────
-  { path: ROUTES.ADMIN_DASHBOARD, element: <RoleRoute allowedRoles={['admin']}><AdminScreen /></RoleRoute> },
-
-  // ─── Customer Routes (authenticated) ────────────
-  { path: ROUTES.HOME, element: <ProtectedRoute><HomeScreen /></ProtectedRoute> },
-  { path: ROUTES.ALL_CANTEENS, element: <ProtectedRoute><AllCanteensScreen /></ProtectedRoute> },
-  { path: ROUTES.CANTEEN_DETAIL, element: <ProtectedRoute><CanteenDetailScreen /></ProtectedRoute> },
-  { path: ROUTES.CART, element: <ProtectedRoute><CartScreen /></ProtectedRoute> },
-  { path: ROUTES.PAYMENT, element: <ProtectedRoute><PaymentScreen /></ProtectedRoute> },
-  { path: ROUTES.ORDER_SUCCESS, element: <ProtectedRoute><OrderSuccessScreen /></ProtectedRoute> },
-  { path: ROUTES.ORDER_TRACKING, element: <ProtectedRoute><OrderTrackingScreen /></ProtectedRoute> },
-  { path: ROUTES.ORDERS, element: <ProtectedRoute><OrdersScreen /></ProtectedRoute> },
-  { path: ROUTES.GROUP_ORDER, element: <ProtectedRoute><GroupOrderScreen /></ProtectedRoute> },
-  { path: ROUTES.OFFERS, element: <ProtectedRoute><OffersScreen /></ProtectedRoute> },
-  { path: ROUTES.PROFILE, element: <ProtectedRoute><ProfileScreen /></ProtectedRoute> },
-
-  // ─── 404 Catch-all ──────────────────────────
-  { path: '*', element: <NotFoundScreen /> },
-];
-
 // ─── Route Configuration ───────────────────────────────
+// The three apps (Student / Canteen / Admin) share this router but
+// each route is guarded by the role(s) allowed to see it:
+//   Student   → role 'user'          → may ONLY access student routes
+//   Canteen   → role 'canteen_owner' → may ONLY access /canteen/* routes
+//   Admin     → role 'admin'         → may ONLY access /admin/* routes
+// Unauthenticated users are sent to the login screen of the app they
+// tried to enter; logged-in users of the wrong role are sent back to
+// their own dashboard.
 
-interface AppRoutesProps {
-  /**
-   * Optional location override. When provided, the <Routes> renders
-   * the matching route for that location instead of the real URL.
-   * This lets us keep visited pages alive in the DOM for instant
-   * back-navigation without remounting.
-   */
-  location?: string | Partial<Location>;
-}
-
-function AppRoutes({ location }: AppRoutesProps) {
-  const isCachedView = !!location;
-
+function AppRoutes() {
   return (
     <Suspense fallback={<RouteFallback />}>
-      <Routes location={location}>
-        {/* Redirect routes — only in primary view (never cached) */}
-        {!isCachedView &&
-          REDIRECT_ROUTES.map((route) => (
-            <Route key={route.path} path={route.path} element={route.element} />
-          ))}
-        {CONTENT_ROUTES.map((route) => (
-          <Route key={route.path} path={route.path} element={route.element} />
-        ))}
+      <Routes>
+        {/* ─── Root redirects to the student login. ── */}
+        <Route path={ROUTES.ROOT} element={<Navigate to={ROUTES.LOGIN} replace />} />
+
+        {/* ─── Public / Pre-Auth Routes ───────────────── */}
+        <Route path={ROUTES.ONBOARDING} element={<OnboardingScreen />} />
+        <Route path={ROUTES.LOGIN} element={<PublicRoute><LoginScreen /></PublicRoute>} />
+        <Route path={ROUTES.LOGIN_CANTEEN} element={<PublicRoute><LoginScreen /></PublicRoute>} />
+        <Route path={ROUTES.ADMIN_LOGIN} element={<PublicRoute><AdminLoginScreen /></PublicRoute>} />
+
+        {/* ─── Canteen Owner Routes ──────────────────── */}
+        {/* MUST come before /canteen/:canteenId to prevent parameter matching */}
+        <Route
+          path={ROUTES.CANTEEN_DASHBOARD}
+          element={
+            <RoleRoute allowedRoles={['canteen_owner']} loginPath={ROUTES.LOGIN_CANTEEN}>
+              <CanteenDashboardScreen />
+            </RoleRoute>
+          }
+        />
+
+        {/* ─── Canteen Menu Management ────────────── */}
+        <Route
+          path={ROUTES.MENU_MANAGEMENT}
+          element={
+            <RoleRoute allowedRoles={['canteen_owner']} loginPath={ROUTES.LOGIN_CANTEEN}>
+              <MenuManagementScreen />
+            </RoleRoute>
+          }
+        />
+
+        {/* ─── Canteen Settings ──────────────────── */}
+        <Route
+          path={ROUTES.CANTEEN_SETTINGS}
+          element={
+            <RoleRoute allowedRoles={['canteen_owner']} loginPath={ROUTES.LOGIN_CANTEEN}>
+              <CanteenSettingsScreen />
+            </RoleRoute>
+          }
+        />
+
+        {/* ─── Admin Routes ─────────────────────────── */}
+        <Route
+          path={ROUTES.ADMIN_DASHBOARD}
+          element={
+            <RoleRoute allowedRoles={['admin']} loginPath={ROUTES.ADMIN_LOGIN}>
+              <AdminLayout>
+                <AdminScreen />
+              </AdminLayout>
+            </RoleRoute>
+          }
+        />
+        <Route
+          path={ROUTES.ADMIN_USERS}
+          element={
+            <RoleRoute allowedRoles={['admin']} loginPath={ROUTES.ADMIN_LOGIN}>
+              <AdminLayout>
+                <AdminUsersScreen />
+              </AdminLayout>
+            </RoleRoute>
+          }
+        />
+        <Route
+          path={ROUTES.ADMIN_CANTEENS}
+          element={
+            <RoleRoute allowedRoles={['admin']} loginPath={ROUTES.ADMIN_LOGIN}>
+              <AdminLayout>
+                <AdminCanteensScreen />
+              </AdminLayout>
+            </RoleRoute>
+          }
+        />
+        <Route
+          path={ROUTES.ADMIN_ORDERS}
+          element={
+            <RoleRoute allowedRoles={['admin']} loginPath={ROUTES.ADMIN_LOGIN}>
+              <AdminLayout>
+                <AdminOrdersScreen />
+              </AdminLayout>
+            </RoleRoute>
+          }
+        />
+
+        {/* ─── Customer Routes (role: user) ───────────── */}
+        <Route path={ROUTES.HOME} element={<RoleRoute allowedRoles={['user']}><HomeScreen /></RoleRoute>} />
+        <Route path={ROUTES.ALL_CANTEENS} element={<RoleRoute allowedRoles={['user']}><AllCanteensScreen /></RoleRoute>} />
+        <Route path={ROUTES.CANTEEN_DETAIL} element={<RoleRoute allowedRoles={['user']}><CanteenDetailScreen /></RoleRoute>} />
+        <Route path={ROUTES.CART} element={<RoleRoute allowedRoles={['user']}><CartScreen /></RoleRoute>} />
+        <Route path={ROUTES.PAYMENT} element={<RoleRoute allowedRoles={['user']}><PaymentScreen /></RoleRoute>} />
+        <Route path={ROUTES.ORDER_SUCCESS} element={<RoleRoute allowedRoles={['user']}><OrderSuccessScreen /></RoleRoute>} />
+        <Route path={ROUTES.ORDER_TRACKING} element={<RoleRoute allowedRoles={['user']}><OrderTrackingScreen /></RoleRoute>} />
+        <Route path={ROUTES.ORDERS} element={<RoleRoute allowedRoles={['user']}><OrdersScreen /></RoleRoute>} />
+        <Route path={ROUTES.GROUP_ORDER} element={<RoleRoute allowedRoles={['user']}><GroupOrderScreen /></RoleRoute>} />
+        <Route path={ROUTES.OFFERS} element={<RoleRoute allowedRoles={['user']}><OffersScreen /></RoleRoute>} />
+        <Route path={ROUTES.PROFILE} element={<RoleRoute allowedRoles={['user']}><ProfileScreen /></RoleRoute>} />
+
+        {/* ─── 404 Catch-all ────────────────────────── */}
+        <Route path="*" element={<NotFoundScreen />} />
       </Routes>
     </Suspense>
   );

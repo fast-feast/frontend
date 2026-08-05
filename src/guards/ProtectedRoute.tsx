@@ -3,8 +3,12 @@ import { useApp } from '@/hooks/useAppContext';
 import { ROUTES } from '@/routes/paths';
 import { LoadingAnimation } from '@/components/ui/loading-animation';
 
+type UserRole = 'user' | 'canteen_owner' | 'admin';
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  /** Where unauthenticated users are sent. Defaults to the student login. */
+  loginPath?: string;
 }
 
 /** Minimal loading spinner shown while auth state is being restored. */
@@ -17,8 +21,8 @@ function AuthLoadingSpinner() {
   );
 }
 
-/** Renders children only if the user is authenticated; otherwise redirects to the student login. */
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
+/** Renders children only if the user is authenticated; otherwise redirects to the configured login. */
+export function ProtectedRoute({ children, loginPath = ROUTES.LOGIN }: ProtectedRouteProps) {
   const { state } = useApp();
 
   if (state.isAuthLoading) {
@@ -26,7 +30,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!state.isLoggedIn) {
-    return <Navigate to={ROUTES.LOGIN} replace />;
+    return <Navigate to={loginPath} replace />;
   }
 
   return <>{children}</>;
@@ -51,11 +55,15 @@ export function PublicRoute({ children }: ProtectedRouteProps) {
 }
 
 interface RoleRouteProps extends ProtectedRouteProps {
-  allowedRoles: Array<'user' | 'canteen_owner' | 'admin'>;
+  allowedRoles: UserRole[];
 }
 
-/** Renders children only if the user has one of the allowed roles. */
-export function RoleRoute({ children, allowedRoles }: RoleRouteProps) {
+/**
+ * Renders children only if the user has one of the allowed roles.
+ * - Unauthenticated users are sent to the login screen of the app they entered.
+ * - Logged-in users of the wrong role are sent back to their own dashboard.
+ */
+export function RoleRoute({ children, allowedRoles, loginPath = ROUTES.LOGIN }: RoleRouteProps) {
   const { state } = useApp();
 
   if (state.isAuthLoading) {
@@ -63,11 +71,17 @@ export function RoleRoute({ children, allowedRoles }: RoleRouteProps) {
   }
 
   if (!state.isLoggedIn) {
-    return <Navigate to={ROUTES.LOGIN} replace />;
+    return <Navigate to={loginPath} replace />;
   }
 
-  if (!allowedRoles.includes(state.user.role as any)) {
-    return <Navigate to={state.user.role === 'canteen_owner' ? ROUTES.CANTEEN_DASHBOARD : ROUTES.HOME} replace />;
+  const role: UserRole = state.user.role ?? 'user';
+
+  if (!allowedRoles.includes(role)) {
+    const home =
+      role === 'admin' ? ROUTES.ADMIN_DASHBOARD
+      : role === 'canteen_owner' ? ROUTES.CANTEEN_DASHBOARD
+      : ROUTES.HOME;
+    return <Navigate to={home} replace />;
   }
 
   return <>{children}</>;

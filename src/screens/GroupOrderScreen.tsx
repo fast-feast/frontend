@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Copy, Check, Plus, Lock, Crown, X, AlertTriangle, Search, UserPlus } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
 import { groupParticipants } from '@/data/mockData';
+import { getCanteenById } from '@/services/canteens';
 
 export default function GroupOrderScreen() {
   const { navigate, showToast, state, dispatch, removeFromCart } = useApp();
@@ -35,6 +36,18 @@ export default function GroupOrderScreen() {
     { id: 'g2', host: 'Rohan', canteen: 'Cafe Brew', members: 2, code: 'rohan-coffee-17' },
     { id: 'g3', host: 'Priya', canteen: 'South Square', members: 4, code: 'priya-south-08' },
   ]);
+
+  // The group pays for the user's cart, so the header must show the REAL canteen of that cart.
+  const groupCanteenId = state.cart.length > 0 ? state.cart[0].canteenId : null;
+  const [groupCanteenName, setGroupCanteenName] = useState('');
+  useEffect(() => {
+    if (!groupCanteenId) return;
+    let cancelled = false;
+    getCanteenById(groupCanteenId)
+      .then((res) => { if (!cancelled) setGroupCanteenName(res.data.name); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [groupCanteenId]);
 
   // Personalized friend suggestions based on user profile and order history
   const { frequentPartners, popularOnCampus } = useMemo(() => {
@@ -244,7 +257,7 @@ export default function GroupOrderScreen() {
             <span className="text-[10px] text-green-400 font-medium">Live</span>
           </div>
         </div>
-        <p className="text-xs text-[#A0A0A0] mt-0.5">Main Canteen • {participants.length} people ordering</p>
+        <p className="text-xs text-[#A0A0A0] mt-0.5">{groupCanteenName ? `${groupCanteenName} • ` : ''}{participants.length} people ordering</p>
       </div>
 
       {/* Invite Link */}

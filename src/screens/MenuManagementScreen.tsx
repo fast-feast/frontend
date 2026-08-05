@@ -42,6 +42,14 @@ const emptyForm: MenuForm = {
 
 const defaultCategories = ['Meals', 'Snacks', 'Beverages', 'Desserts', 'Combos'];
 
+// Menu changed — bust the home cache (trending) AND this canteen's detail cache
+// so students see updated items immediately on their next visit.
+// Only the affected canteen's entry is cleared; other canteens are untouched.
+const invalidateMenuCaches = (canteenId?: string | null) => {
+  clearCache('home_screen_data');
+  if (canteenId) clearCache(`canteen_detail:${canteenId}`);
+};
+
 export default function MenuManagementScreen() {
   const { state, showToast } = useApp();
   const navigate = useNavigate();
@@ -71,8 +79,29 @@ export default function MenuManagementScreen() {
   }, [canteenId]);
 
   useEffect(() => {
-    fetchMenu();
-  }, [fetchMenu]);
+    if (!canteenId) return;
+    const id = canteenId;
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const res = await getMenuByCanteen(id);
+        if (cancelled) return;
+        setItems(res.data.items);
+        setError(null);
+      } catch (err) {
+        if (!cancelled) setError(extractErrorMessage(err));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canteenId]);
 
   // ─── Group items by category ──────────────────────────
   const grouped: Record<string, MenuItemDTO[]> = {};
@@ -126,8 +155,8 @@ export default function MenuManagementScreen() {
         await createMenuItem(payload);
         showToast(`${form.name} added to menu`);
       }
-      // Menu changed — bust the home screen cache so trending reflects it
-      clearCache('home_screen_data');
+      // Menu changed — bust home + this canteen's detail cache so students see the update
+      invalidateMenuCaches(canteenId);
       setShowForm(false);
       setEditingItem(null);
       await fetchMenu();
@@ -142,8 +171,8 @@ export default function MenuManagementScreen() {
     if (!deleteTarget) return;
     try {
       await deleteMenuItem(deleteTarget._id);
-      // Menu changed — bust the home screen cache so trending reflects it
-      clearCache('home_screen_data');
+      // Menu changed — bust home + this canteen's detail cache so students see the update
+      invalidateMenuCaches(canteenId);
       showToast(`${deleteTarget.name} deleted`);
       setDeleteTarget(null);
       await fetchMenu();
@@ -155,8 +184,8 @@ export default function MenuManagementScreen() {
   const handleToggleStock = async (item: MenuItemDTO) => {
     try {
       await updateMenuItem(item._id, { inStock: !item.inStock });
-      // Stock changes affect the trending carousel (only in-stock items show)
-      clearCache('home_screen_data');
+      // Stock changed — bust home + this canteen's detail cache so students see the update
+      invalidateMenuCaches(canteenId);
       showToast(`${item.name} ${item.inStock ? 'out of stock' : 'back in stock'}`);
       await fetchMenu();
     } catch (err) {
@@ -167,8 +196,8 @@ export default function MenuManagementScreen() {
   const handleToggleTrending = async (item: MenuItemDTO) => {
     try {
       await updateMenuItem(item._id, { isTrending: !item.isTrending });
-      // Trending carousel on home must refresh to include/exclude this item
-      clearCache('home_screen_data');
+      // Trending changed — bust home + this canteen's detail cache so students see the update
+      invalidateMenuCaches(canteenId);
       showToast(`${item.name} ${item.isTrending ? 'removed from' : 'added to'} trending`);
       await fetchMenu();
     } catch (err) {

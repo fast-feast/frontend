@@ -5,12 +5,16 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/hooks/useAppContext';
 import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
+import { getOrderById } from '@/services/orders';
+import type { OrderDTO } from '@/services/orders';
 
 export default function OrderSuccessScreen() {
   const { state, navigate, dispatch } = useApp();
   const routerNavigate = useNavigate();
   const [spinComplete, setSpinComplete] = useState(false);
-  const token = state.tokenNumber || 'A-042';
+  const [order, setOrder] = useState<OrderDTO | null>(null);
+  // Real token from the placed order (fallback: the token stored at payment time).
+  const token = order?.token || state.tokenNumber;
 
   useEffect(() => {
     const t1 = setTimeout(() => setSpinComplete(true), 2000);
@@ -25,6 +29,16 @@ export default function OrderSuccessScreen() {
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
+  // Load the real order so every value shown comes from the API, not hardcoded placeholders.
+  useEffect(() => {
+    if (!state.activeOrderId) return;
+    let cancelled = false;
+    getOrderById(state.activeOrderId)
+      .then((res) => { if (!cancelled) setOrder(res.data); })
+      .catch(() => { /* token/order id already in state; details simply stay hidden */ });
+    return () => { cancelled = true; };
+  }, [state.activeOrderId]);
+
   const handleTrack = () => {
     navigate('orderTracking', 'push', { orderId: state.activeOrderId || '' });
   };
@@ -33,6 +47,23 @@ export default function OrderSuccessScreen() {
     dispatch({ type: 'SET_TAB', tab: 'home' });
     routerNavigate('/home');
   };
+
+  // Honest empty state when there is no order context (e.g. direct visit or refresh).
+  if (!state.activeOrderId && !state.tokenNumber) {
+    return (
+      <div className="screen-surface h-full flex flex-col items-center justify-center px-6">
+        <p className="text-sm text-[#A0A0A0] text-center mb-4">No active order found.</p>
+        <button
+          onClick={handleOrderMore}
+          className="px-6 h-11 rounded-full food-gradient text-white font-semibold text-sm"
+        >
+          Back to Home
+        </button>
+      </div>
+    );
+  }
+
+  const displayItems = order?.items ?? state.cart;
 
   return (
     <div className="screen-surface h-full flex flex-col overflow-y-auto no-scrollbar">
@@ -124,16 +155,14 @@ export default function OrderSuccessScreen() {
         transition={{ delay: 2 }}
         className="mx-4 md:mx-6 lg:mx-8 mt-5 glass-card p-4"
       >
-        <p className="text-sm font-semibold text-white">Main Canteen</p>
+        <p className="text-sm font-semibold text-white">{order?.canteenName || state.canteen?.name || 'Order Details'}</p>
         <div className="mt-2 space-y-1">
-          {state.cart.length > 0 ? state.cart.map(item => (
-            <div key={item.id} className="flex justify-between text-xs">
+          {displayItems.length > 0 ? displayItems.map(item => (
+            <div key={'menuItemId' in item ? item.menuItemId : item.id} className="flex justify-between text-xs">
               <span className="text-[#A0A0A0]">{item.name} x{item.quantity}</span>
               <span className="text-white">₹{item.price * item.quantity}</span>
             </div>
-          )) : (
-            <div className="text-xs text-[#6B6B6B]">Your recent order</div>
-          )}
+          )) : null}
         </div>
       </motion.div>
 
@@ -147,7 +176,7 @@ export default function OrderSuccessScreen() {
         <div className="flex items-center gap-2">
           <Clock size={18} className="text-blue-400" />
           <div>
-            <p className="text-lg font-bold text-white">15-20 min</p>
+            <p className="text-lg font-bold text-white">{order?.estimatedTime || '--'}</p>
             <p className="text-[10px] text-[#6B6B6B]">Estimated time</p>
           </div>
         </div>
@@ -155,7 +184,7 @@ export default function OrderSuccessScreen() {
         <div className="flex items-center gap-2">
           <Users size={18} className="text-[#A0A0A0]" />
           <div>
-            <p className="text-sm font-semibold text-white">5 orders ahead</p>
+            <p className="text-sm font-semibold text-white">{order?.queuePosition ? `${order.queuePosition} orders ahead` : 'Your turn!'}</p>
             <div className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
               <p className="text-[10px] text-green-400">Live updates</p>

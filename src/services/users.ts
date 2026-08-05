@@ -4,6 +4,7 @@ import type { UserProfile } from '@/types';
 export interface UserDTO extends UserProfile {
   _id: string;
   role: 'user' | 'canteen_owner' | 'admin';
+  createdAt?: string;
 }
 
 export interface UserStats {
@@ -45,6 +46,16 @@ export function getUserOrders(params?: Record<string, string>) {
 
 export function getAllUsers(params?: Record<string, string>) {
   return get<UserDTO[]>('/users/admin/users', { params });
+}
+
+/** Admin-only: create a brand-new canteen owner account. */
+export function createOwnerUser(data: {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+}) {
+  return post<UserDTO>('/users/admin/owners', data);
 }
 
 export function getAdminStats() {

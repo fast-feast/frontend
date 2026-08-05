@@ -1,7 +1,7 @@
 import { memo, useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { AppProvider } from '@/hooks/useAppContext';
+import { AppProvider } from '@/hooks/AppProvider';
 import BottomNav from '@/components/BottomNav';
 import Toast from '@/components/Toast';
 import StickyCartBar from '@/components/StickyCartBar';
@@ -9,6 +9,7 @@ import GeminiAssistant from '@/components/GeminiAssistant';
 import PwaInstallPrompt from '@/components/PwaInstallPrompt';
 import UpdatePrompt from '@/components/UpdatePrompt';
 import AppRoutes from '@/routes';
+import { PageActiveProvider } from '@/hooks/PageActiveProvider';
 
 /** Screens that should show the bottom navigation bar. */
 const TAB_ROOTS = ['/home', '/orders', '/offers', '/group-order'];
@@ -64,12 +65,13 @@ function AnimatedOutlet() {
             style={{ zIndex: isActive ? 1 : 0 }}
           >
             {/*
-              Active view: render via real router location so redirect routes
-              (e.g. '/' → '/login') actually fire.
-              Cached (hidden) views: pin to their own path so they stay alive
-              without re-running redirects.
+              Every layer renders the live router location so redirect routes
+              (e.g. '/' → '/login') always fire exactly once, while the cached
+              layers keep their motion state for animated back-navigation.
             */}
-            <AppRoutes location={isActive ? undefined : path} />
+            <PageActiveProvider active={isActive}>
+              <AppRoutes />
+            </PageActiveProvider>
           </motion.div>
         );
       })}

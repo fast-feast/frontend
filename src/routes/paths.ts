@@ -23,7 +23,11 @@ export const ROUTES = {
   CANTEEN_DASHBOARD: '/canteen/dashboard',
   MENU_MANAGEMENT: '/canteen/menu',
   CANTEEN_SETTINGS: '/canteen/settings',
+  ADMIN_LOGIN: '/admin/login',
   ADMIN_DASHBOARD: '/admin/dashboard',
+  ADMIN_USERS: '/admin/users',
+  ADMIN_CANTEENS: '/admin/canteens',
+  ADMIN_ORDERS: '/admin/orders',
 } as const;
 
 /**

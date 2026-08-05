@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, UtensilsCrossed, RefreshCw, AlertTriangle, X, Settings } from 'lucide-react';
+import { Check, UtensilsCrossed, RefreshCw, AlertTriangle, X, Settings, LogOut } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
 import { getOrdersByCanteen, updateOrderStatus, type OrderDTO } from '@/services/orders';
 import { getDashboardStats, updateCanteen } from '@/services/canteens';
 import { extractErrorMessage } from '@/services/api';
+
 import { LoadingAnimation } from '@/components/ui/loading-animation';
+
 
 type OrderStatus = 'received' | 'preparing' | 'ready' | 'cancelled';
 type DisplayStatus = 'received' | 'preparing' | 'ready' | 'all';
@@ -60,7 +62,7 @@ function normalizeDashboardOrders(orders: OrderDTO[]): DashboardOrderItem[] {
 }
 
 export default function CanteenDashboardScreen() {
-  const { state, showToast } = useApp();
+  const { state, logout, showToast } = useApp();
   const { canteen, canteenId } = state;
   const navigate = useNavigate();
 
@@ -92,8 +94,33 @@ export default function CanteenDashboardScreen() {
   }, [canteenId]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (!canteenId) return;
+    const id = canteenId;
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const [ordersRes, statsRes] = await Promise.all([
+          getOrdersByCanteen(id),
+          getDashboardStats(id),
+        ]);
+        if (cancelled) return;
+        setOrders(normalizeDashboardOrders(ordersRes.data));
+        setTotalOrders(statsRes.data.totalOrders);
+        setError(null);
+      } catch (err) {
+        if (!cancelled) setError(extractErrorMessage(err));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canteenId]);
 
   const filteredOrders = activeTab === 'all'
     ? orders
@@ -116,6 +143,11 @@ export default function CanteenDashboardScreen() {
     } catch (err) {
       showToast(extractErrorMessage(err), 'error');
     }
+  };
+
+  // logout() is role-aware and already routes canteen owners to /canteen/login.
+  const handleLogout = () => {
+    logout();
   };
 
   const handleTogglePause = async () => {
@@ -215,8 +247,18 @@ export default function CanteenDashboardScreen() {
             whileTap={{ scale: 0.9 }}
             onClick={fetchData}
             className="w-8 h-8 rounded-full bg-card flex items-center justify-center"
+            aria-label="Refresh orders"
           >
             <RefreshCw size={14} className="text-[#6B6B6B]" />
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={handleLogout}
+            className="w-8 h-8 rounded-full bg-card flex items-center justify-center"
+            aria-label="Logout"
+            title="Logout"
+          >
+            <LogOut size={14} className="text-red-400" />
           </motion.button>
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />

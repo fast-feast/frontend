@@ -11,6 +11,10 @@ export interface CanteenDTO extends Omit<Canteen, 'id'> {
   contactPhone?: string;
   address?: string;
   openingHours?: string;
+  /** Set when a canteen_owner account is linked to this canteen. */
+  ownerId?: string | null;
+  /** Admin-only: email of the user to link as this canteen's owner. */
+  ownerEmail?: string;
 }
 
 export function normalizeCanteen(dto: CanteenDTO): Canteen {

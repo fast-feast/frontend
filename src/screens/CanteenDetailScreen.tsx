@@ -12,43 +12,38 @@ import type { Canteen, MenuItem } from '@/types';
 export default function CanteenDetailScreen() {
   const { state, goBack, addToCart, updateQuantity, showToast, navigate, dispatch } = useApp();
   const { canteenId } = useParams<{ canteenId: string }>();
+  const activeCanteenId = state.selectedCanteenId || canteenId || '';
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [canteen, setCanteen] = useState<Canteen | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !!activeCanteenId);
 
   // Sync URL param to context if needed (e.g. direct URL access)
   useEffect(() => {
     if (canteenId && canteenId !== state.selectedCanteenId) {
       dispatch({ type: 'SELECT_CANTEEN', id: canteenId });
     }
-  }, [canteenId]);
-
-  const activeCanteenId = state.selectedCanteenId || canteenId || '';
+  }, [canteenId, dispatch, state.selectedCanteenId]);
 
   // ─── Cached Data Loading ────────────────────────────
   useEffect(() => {
-    if (!activeCanteenId) {
-      setLoading(false);
-      return;
-    }
+    if (!activeCanteenId) return;
 
     const cacheKey = `canteen_detail:${activeCanteenId}`;
-
-    // 1. Try cache first (instant)
-    const cached = getCached<{ canteen: Canteen; menuItems: MenuItem[] }>(cacheKey);
-    if (cached) {
-      setCanteen(cached.canteen);
-      setMenuItems(cached.menuItems);
-      setLoading(false);
-      return;
-    }
-
-    // 2. No cache — fetch fresh
     let cancelled = false;
 
     async function loadData() {
+      // 1. Try cache first (instant)
+      const cached = getCached<{ canteen: Canteen; menuItems: MenuItem[] }>(cacheKey);
+      if (cached) {
+        setCanteen(cached.canteen);
+        setMenuItems(cached.menuItems);
+        setLoading(false);
+        return;
+      }
+
+      // 2. No cache — fetch fresh
       try {
         const res = await getCanteenWithMenu(activeCanteenId);
         if (cancelled) return;
