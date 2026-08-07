@@ -4,7 +4,7 @@
   ],
   "headers": [
     {
-      "source": "/manifest.json",
+      "source": "/manifest.webmanifest",
       "headers": [
         {
           "key": "Cache-Control",
