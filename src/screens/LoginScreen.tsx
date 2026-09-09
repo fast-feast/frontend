@@ -331,7 +331,7 @@ export default function LoginScreen() {
                     maxLength={6}
                     value={otp}
                     onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    placeholder="Enter 6 digit OTP"
+                    placeholder="Enter 6 digit OTP(123456)"
                     className="flex-1 min-w-0 bg-transparent outline-none text-white text-sm placeholder:text-[#6B6B6B] tracking-[0.28em]"
                   />
                 </div>
