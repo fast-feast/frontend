@@ -44,6 +44,17 @@ export function register(data: RegisterRequest) {
   return post<AuthResponse>('/auth/register', data);
 }
 
+/**
+ * Exchange a verified Firebase ID token for the existing FastFeast session
+ * (students only). The ID token travels in the Authorization header and is
+ * verified server-side by the Firebase Admin SDK.
+ */
+export function firebaseSession(idToken: string) {
+  return post<AuthResponse>('/auth/session', {}, {
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+}
+
 export function login(data: LoginRequest) {
   return post<AuthResponse>('/auth/login', data);
 }

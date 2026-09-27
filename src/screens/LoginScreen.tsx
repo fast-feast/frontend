@@ -7,12 +7,30 @@ import {
   Mail, Lock, Eye, EyeOff, ArrowLeft,
 } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
-import { login, sendOtp, verifyOtp } from '@/services/auth';
+import { login, sendOtp, verifyOtp, firebaseSession } from '@/services/auth';
+import {
+  firebaseSignIn,
+  firebaseSignUp,
+  firebaseGoogleSignIn,
+  firebaseSendPasswordReset,
+} from '@/services/firebaseAuth';
 import { extractErrorMessage } from '@/services/api';
 import { SpinnerLoader } from '@/components/ui/loading-animation';
 import { ROUTES } from '@/routes/paths';
 
 type LoginMethod = 'email' | 'otp';
+
+/** Standard Google brand mark (inline so no icon package is added). */
+function GoogleIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true">
+      <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" />
+      <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" />
+      <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" />
+      <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z" />
+    </svg>
+  );
+}
 
 export default function LoginScreen() {
   const { loginWithToken, showToast } = useApp();
@@ -23,6 +41,11 @@ export default function LoginScreen() {
   // owner login (/canteen/login). The canteen variant rejects accounts
   // that are not canteen owners and links back to the student login.
   const isCanteenRoute = location.pathname === ROUTES.LOGIN_CANTEEN;
+
+  // Students authenticate through Firebase (Google or email/password —
+  // never phone/SMS). Owners keep the existing backend login — including the
+  // Mobile OTP tab, which is hidden on the student route.
+  const isStudentLogin = !isCanteenRoute;
 
   const [loginMethod, setLoginMethod] = useState<LoginMethod>('email');
 
@@ -38,6 +61,11 @@ export default function LoginScreen() {
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [rememberMeOtp, setRememberMeOtp] = useState(false);
+
+  // Student signup / password reset (Firebase Google + email/password only)
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetting, setResetting] = useState(false);
 
   // Global
   const [loading, setLoading] = useState(false);
@@ -56,18 +84,63 @@ export default function LoginScreen() {
     setError(null);
     if (!email.trim()) { setError('Email is required'); return; }
     if (!password) { setError('Password is required'); return; }
+    if (isStudentLogin && isSignUp) {
+      if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
+      if (confirmPassword !== password) { setError('Passwords do not match'); return; }
+    }
     setLoading(true);
     try {
-      const res = await login({ email: email.trim(), password });
-      const { user, token } = res.data;
+      if (isStudentLogin) {
+        // Students: Firebase (Google/email) → ID token → backend session
+        // bridge → existing FastFeast { user, token }. The UI, session shape
+        // and post-login navigation are identical to before.
+        const session = isSignUp
+          ? await firebaseSignUp(email.trim(), password)
+          : await firebaseSignIn(email.trim(), password);
+        const res = await firebaseSession(session.idToken);
+        const { user, token } = res.data;
+        loginWithToken(token, {
+          name: user.name,
+          phone: user.phone,
+          email: user.email,
+          role: user.role,
+        });
+        showToast(isSignUp ? `Welcome to Fast Feast, ${user.name}!` : `Welcome back, ${user.name}!`);
+      } else {
+        // Canteen owners: unchanged backend authentication.
+        const res = await login({ email: email.trim(), password });
+        const { user, token } = res.data;
 
-      // Canteen login admits canteen owners only — reject everyone else
-      // before storing the token.
-      if (isCanteenRoute && user.role !== 'canteen_owner') {
-        setError('This account does not have canteen access.');
-        return;
+        // Canteen login admits canteen owners only — reject everyone else
+        // before storing the token.
+        if (user.role !== 'canteen_owner') {
+          setError('This account does not have canteen access.');
+          return;
+        }
+
+        loginWithToken(token, {
+          name: user.name,
+          phone: user.phone,
+          email: user.email,
+          role: user.role,
+        });
+        showToast(`Welcome back, ${user.name}!`);
       }
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Students only: Firebase Google sign-in → session bridge.
+  const handleGoogleLogin = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const session = await firebaseGoogleSignIn();
+      const res = await firebaseSession(session.idToken);
+      const { user, token } = res.data;
       loginWithToken(token, {
         name: user.name,
         phone: user.phone,
@@ -79,6 +152,26 @@ export default function LoginScreen() {
       setError(extractErrorMessage(err));
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Students: Firebase's standard reset email — no custom reset backend.
+  // Owners keep the original behavior (admin-assisted reset).
+  const handleForgotPassword = async () => {
+    if (!isStudentLogin) {
+      showToast('Forgot password - Contact admin for reset');
+      return;
+    }
+    setError(null);
+    if (!email.trim()) { setError('Enter your email first, then tap Forgot Password'); return; }
+    setResetting(true);
+    try {
+      await firebaseSendPasswordReset(email.trim());
+      showToast('Password reset email sent');
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -160,25 +253,27 @@ export default function LoginScreen() {
           </p>
         </motion.div>
 
-        {/* Method Tabs */}
-        <div className="flex bg-card rounded-xl p-1 mb-5">
-          <button
-            onClick={() => { setLoginMethod('email'); setError(null); }}
-            className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              loginMethod === 'email' ? 'food-gradient text-white' : 'text-[#6B6B6B]'
-            }`}
-          >
-            <Mail size={14} className="inline mr-1.5" /> Email
-          </button>
-          <button
-            onClick={() => { setLoginMethod('otp'); setError(null); }}
-            className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              loginMethod === 'otp' ? 'food-gradient text-white' : 'text-[#6B6B6B]'
-            }`}
-          >
-            <Phone size={14} className="inline mr-1.5" /> Mobile OTP
-          </button>
-        </div>
+        {/* Method Tabs — OTP is owner-only now; students use Firebase email login */}
+        {!isStudentLogin && (
+          <div className="flex bg-card rounded-xl p-1 mb-5">
+            <button
+              onClick={() => { setLoginMethod('email'); setError(null); }}
+              className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+                loginMethod === 'email' ? 'food-gradient text-white' : 'text-[#6B6B6B]'
+              }`}
+            >
+              <Mail size={14} className="inline mr-1.5" /> Email
+            </button>
+            <button
+              onClick={() => { setLoginMethod('otp'); setError(null); }}
+              className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+                loginMethod === 'otp' ? 'food-gradient text-white' : 'text-[#6B6B6B]'
+              }`}
+            >
+              <Phone size={14} className="inline mr-1.5" /> Mobile OTP
+            </button>
+          </div>
+        )}
 
         {/* Error */}
         <AnimatePresence>
@@ -205,6 +300,26 @@ export default function LoginScreen() {
             onSubmit={handleEmailLogin}
             className="space-y-4"
           >
+            {isStudentLogin && (
+              <>
+                {/* Students: Continue with Google (Firebase popup) */}
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={loading}
+                  className="w-full h-14 rounded-full bg-card border border-white/[0.08] text-white font-semibold text-sm flex items-center justify-center gap-3 hover:border-white/20 transition-all disabled:opacity-70"
+                >
+                  <GoogleIcon size={20} />
+                  Continue with Google
+                </button>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-white/10" />
+                  <span className="text-[10px] text-[#6B6B6B] uppercase tracking-wider">or</span>
+                  <div className="flex-1 h-px bg-white/10" />
+                </div>
+              </>
+            )}
+
             <label className="block">
               <span className="text-xs font-semibold text-[#A0A0A0] uppercase tracking-wide">Email</span>
               <div className="mt-2 h-14 rounded-2xl bg-card border border-white/[0.08] flex items-center gap-3 px-4 focus-within:border-[#FF6B35]/50 focus-within:shadow-[0_0_0_3px_rgba(255,107,53,0.12)] transition-all">
@@ -238,6 +353,23 @@ export default function LoginScreen() {
               </div>
             </label>
 
+            {isStudentLogin && isSignUp && (
+              <label className="block">
+                <span className="text-xs font-semibold text-[#A0A0A0] uppercase tracking-wide">Confirm Password</span>
+                <div className="mt-2 h-14 rounded-2xl bg-card border border-white/[0.08] flex items-center gap-3 px-4 focus-within:border-[#FF6B35]/50 focus-within:shadow-[0_0_0_3px_rgba(255,107,53,0.12)] transition-all">
+                  <Lock size={19} className="text-[#FF6B35] flex-shrink-0" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter your password"
+                    className="flex-1 min-w-0 bg-transparent outline-none text-white text-sm placeholder:text-[#6B6B6B]"
+                    autoComplete="new-password"
+                  />
+                </div>
+              </label>
+            )}
+
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -250,8 +382,9 @@ export default function LoginScreen() {
               </label>
               <button
                 type="button"
-                onClick={() => showToast('Forgot password - Contact admin for reset')}
-                className="text-[10px] text-[#FF6B35] font-medium hover:underline"
+                onClick={handleForgotPassword}
+                disabled={resetting}
+                className="text-[10px] text-[#FF6B35] font-medium hover:underline disabled:opacity-60"
               >
                 Forgot Password?
               </button>
@@ -268,8 +401,18 @@ export default function LoginScreen() {
                   <SpinnerLoader size="sm" />
                   <span>Signing in...</span>
                 </div>
-              ) : <>Sign In <ArrowRight size={18} /></>}
+              ) : isStudentLogin && isSignUp ? <>Create Account <ArrowRight size={18} /></> : <>Sign In <ArrowRight size={18} /></>}
             </motion.button>
+
+            {isStudentLogin && (
+              <button
+                type="button"
+                onClick={() => { setIsSignUp(!isSignUp); setConfirmPassword(''); setError(null); }}
+                className="w-full text-center text-xs text-[#6B6B6B] hover:text-[#FF6B35] transition-colors"
+              >
+                {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Create Account"}
+              </button>
+            )}
 
           </motion.form>
         )}
@@ -373,7 +516,11 @@ export default function LoginScreen() {
         {!isCanteenRoute && (
           <button
             type="button"
-            onClick={() => navigate(ROUTES.ADMIN_LOGIN)}
+            onClick={() => {
+              setIsSignUp(false);
+              setError(null);
+              navigate(ROUTES.ADMIN_LOGIN);
+            }}
             className="mt-6 w-full text-center text-xs text-[#6B6B6B] hover:text-[#FF6B35] transition-colors flex items-center justify-center gap-1.5"
           >
             <ShieldCheck size={13} />

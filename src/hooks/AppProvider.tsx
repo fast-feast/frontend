@@ -4,6 +4,7 @@ import type { CartItem, MenuItem, ScreenName, CanteenWithId } from '@/types';
 import { userProfile } from '@/data/mockData';
 import { getStoredToken, removeToken, storeToken } from '@/services/api';
 import { getMe } from '@/services/auth';
+import { firebaseSignOut, hasFirebaseSession } from '@/services/firebaseAuth';
 import { buildPath, screenToPath, ROUTES } from '@/routes/paths';
 import { AppContext, type Action, type AppState } from '@/hooks/useAppContext';
 
@@ -285,6 +286,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
    */
   const logout = useCallback(() => {
     const role = state.user.role;
+    // Students may have a Firebase session — sign out of Firebase first.
+    // Owners/admins have no Firebase session, so this is a harmless no-op.
+    if (hasFirebaseSession()) {
+      void firebaseSignOut();
+    }
     removeToken();
     dispatch({ type: 'LOGOUT' });
     dispatch({ type: 'RESTORE_AUTH' });
